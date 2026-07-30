@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# Env & secrets
+.env
+.env.local
+*.pem
+
+# Data (corpus not committed)
+data/lennys-podcast-transcripts/
+data/*.log
+
+# IDE / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Frontend
+apps/web/dist/
+apps/web/playwright-report/
+apps/web/test-results/
+
+# Ingestion reports may be generated locally
+# docs/ingestion-reports/*.json is OK to commit selectively

@@ -1,0 +1,22 @@
+{
+  "e1": "ship30_essay",
+  "e2": "ship30_essay",
+  "a1": "artifact_generator",
+  "a2": "artifact_generator",
+  "d1": "transcript_qa",
+  "d2": "transcript_qa",
+  "d3": "transcript_qa",
+  "d4": "transcript_qa",
+  "d5": "transcript_qa",
+  "s1": "transcript_qa",
+  "s2": "transcript_qa",
+  "s3": "transcript_qa",
+  "s4": "transcript_qa",
+  "s5": "transcript_qa",
+  "c1": "transcript_qa",
+  "c2": "transcript_qa",
+  "c3": "transcript_qa",
+  "u1": "transcript_qa",
+  "u2": "transcript_qa",
+  "u3": "transcript_qa"
+}

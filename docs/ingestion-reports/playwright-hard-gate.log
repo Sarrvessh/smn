@@ -1,0 +1,72 @@
+
+Running 4 tests using 4 workers
+
+
+
+(node:20092) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:34196) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+(node:20092) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+(node:34196) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/4] [chromium] ΓÇ║ tests\e2e\hard-gate.spec.ts:4:3 ΓÇ║ Day-2 hard gate (mock) ΓÇ║ new chat, composer modes, and shell panes
+[2/4] [chromium] ΓÇ║ tests\e2e\hard-gate.spec.ts:15:3 ΓÇ║ Day-2 hard gate (mock) ΓÇ║ suggested prompts visible on empty chat
+(node:1696) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+(node:1696) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[3/4] [chromium] ΓÇ║ tests\e2e\smoke.spec.ts:4:3 ΓÇ║ Lenny Growth Assistant smoke ΓÇ║ loads the branded three-pane shell
+(node:25672) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+(node:25672) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[4/4] [chromium] ΓÇ║ tests\e2e\smoke.spec.ts:12:3 ΓÇ║ Lenny Growth Assistant smoke ΓÇ║ composer and new chat controls are present
+  1) [chromium] ΓÇ║ tests\e2e\hard-gate.spec.ts:4:3 ΓÇ║ Day-2 hard gate (mock) ΓÇ║ new chat, composer modes, and shell panes 
+
+    Test timeout of 30000ms exceeded while setting up "page".
+
+    Error Context: test-results\hard-gate-Day-2-hard-gate--733fe-poser-modes-and-shell-panes-chromium\error-context.md
+
+
+  2) [chromium] ΓÇ║ tests\e2e\hard-gate.spec.ts:15:3 ΓÇ║ Day-2 hard gate (mock) ΓÇ║ suggested prompts visible on empty chat 
+
+    Test timeout of 30000ms exceeded while setting up "page".
+
+    Error Context: test-results\hard-gate-Day-2-hard-gate--e277f-ompts-visible-on-empty-chat-chromium\error-context.md
+
+
+  3) [chromium] ΓÇ║ tests\e2e\smoke.spec.ts:4:3 ΓÇ║ Lenny Growth Assistant smoke ΓÇ║ loads the branded three-pane shell 
+
+    Test timeout of 30000ms exceeded while setting up "page".
+
+    Error Context: test-results\smoke-Lenny-Growth-Assista-5ce80-he-branded-three-pane-shell-chromium\error-context.md
+
+
+  4) [chromium] ΓÇ║ tests\e2e\smoke.spec.ts:12:3 ΓÇ║ Lenny Growth Assistant smoke ΓÇ║ composer and new chat controls are present 
+
+    Test timeout of 30000ms exceeded while setting up "page".
+
+    Error Context: test-results\smoke-Lenny-Growth-Assista-28789-w-chat-controls-are-present-chromium\error-context.md
+
+
+  4 failed
+    [chromium] ΓÇ║ tests\e2e\hard-gate.spec.ts:4:3 ΓÇ║ Day-2 hard gate (mock) ΓÇ║ new chat, composer modes, and shell panes 
+    [chromium] ΓÇ║ tests\e2e\hard-gate.spec.ts:15:3 ΓÇ║ Day-2 hard gate (mock) ΓÇ║ suggested prompts visible on empty chat 
+    [chromium] ΓÇ║ tests\e2e\smoke.spec.ts:4:3 ΓÇ║ Lenny Growth Assistant smoke ΓÇ║ loads the branded three-pane shell 
+    [chromium] ΓÇ║ tests\e2e\smoke.spec.ts:12:3 ΓÇ║ Lenny Growth Assistant smoke ΓÇ║ composer and new chat controls are present 

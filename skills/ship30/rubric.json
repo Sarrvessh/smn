@@ -1,0 +1,10 @@
+{
+  "title": true,
+  "headings": true,
+  "bullets": true,
+  "bold": true,
+  "takeaway": true,
+  "citations": true,
+  "word_count_min": 900,
+  "word_count_max": 1600
+}

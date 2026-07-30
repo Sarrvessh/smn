@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: ankane/pgvector:v0.5.1
+    container_name: lenny-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: lenny
+    ports:
+      - "5432:5432"
+    volumes:
+      - lenny_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d lenny"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  lenny_pgdata:

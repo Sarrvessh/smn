@@ -1,0 +1,25 @@
+[ingest] start pid=16776 source=E:\smn\data\lennys-podcast-transcripts incremental=True
+[ingest] 22/303 ok slug=aparna-chennapragada chunks=39 inserted=1 updated=0
+[ingest] 23/303 ok slug=april-dunford chunks=61 inserted=2 updated=0
+[ingest] 24/303 ok slug=april-dunford-20 chunks=61 inserted=3 updated=0
+[ingest] 25/303 ok slug=archie-abrams chunks=46 inserted=4 updated=0
+[ingest] 26/303 ok slug=arielle-jackson chunks=52 inserted=5 updated=0
+[ingest] 27/303 ok slug=asha-sharma chunks=32 inserted=6 updated=0
+[ingest] 28/303 ok slug=austin-hay chunks=51 inserted=7 updated=0
+[ingest] 29/303 ok slug=ayo-omojola chunks=33 inserted=8 updated=0
+[ingest] 30/303 ok slug=bangaly-kaba chunks=66 inserted=9 updated=0
+[ingest] 31/303 ok slug=barbra-gago chunks=31 inserted=10 updated=0
+[ingest] 32/303 ok slug=ben-horowitz chunks=53 inserted=11 updated=0
+[ingest] 33/303 ok slug=ben-williams chunks=30 inserted=12 updated=0
+[ingest] 34/303 ok slug=benjamin-lauzier chunks=55 inserted=13 updated=0
+[ingest] 35/303 ok slug=benjamin-mann chunks=44 inserted=14 updated=0
+[ingest] 36/303 ok slug=bill-carr chunks=50 inserted=15 updated=0
+[ingest] 37/303 ok slug=bob-baxley chunks=67 inserted=16 updated=0
+[ingest] 38/303 ok slug=bob-moesta chunks=46 inserted=17 updated=0
+[ingest] 39/303 ok slug=bob-moesta-20 chunks=60 inserted=18 updated=0
+[ingest] 40/303 ok slug=boz chunks=74 inserted=19 updated=0
+[ingest] 41/303 ok slug=brandon-chu chunks=30 inserted=20 updated=0
+[ingest] 42/303 ok slug=brendan-foody chunks=40 inserted=21 updated=0
+[ingest] 43/303 ok slug=bret-taylor chunks=52 inserted=22 updated=0
+[ingest] 44/303 ok slug=brian-balfour chunks=51 inserted=23 updated=0
+[ingest] 45/303 ok slug=brian-chesky chunks=47 inserted=24 updated=0

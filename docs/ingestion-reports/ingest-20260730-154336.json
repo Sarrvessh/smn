@@ -1,0 +1,9 @@
+{
+  "episodes_discovered": 5,
+  "episodes_inserted": 5,
+  "episodes_updated": 0,
+  "episodes_skipped": 0,
+  "chunks_generated": 224,
+  "embedding_failures": 0,
+  "total_duration": 1.18
+}

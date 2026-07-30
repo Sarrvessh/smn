@@ -1,0 +1,16 @@
+live 200 {'status': 'ok'}
+ready 200 {'status': 'ready'}
+knowledge {'episodes': 21, 'chunks': 969, 'ready': True, 'embedding_dim': 768}
+chat_models ['mistral:7b', 'gemma:2b', 'llama3.1:8b', 'qwen2.5:7b', 'llama3.2:latest']
+sessions 3c66efac-aacf-44a0-8ff2-e18bf57c2b87 9880c426-b40e-4217-8071-f1a38819280c
+qa events ['completed', 'run_started', 'sources', 'status', 'token']
+qa tokens_len 1919 sources 8
+PASS: grounded Q&A
+s1 messages 2 s2 messages 0
+PASS: persistence + isolation
+ship30 events ['artifact', 'completed', 'run_started', 'sources', 'status', 'token'] artifact True
+artifact type markdown chars 3394
+PASS: ship30 markdown artifact
+html artifact html has_script False
+PASS: html artifact
+HARD_GATE PASS

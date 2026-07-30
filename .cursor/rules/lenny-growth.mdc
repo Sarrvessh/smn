@@ -1,0 +1,19 @@
+---
+description: Protect locked contracts and submission scope
+globs:
+  - docs/api-contract.md
+  - docs/streaming-contract.md
+  - docs/schema.md
+  - docker-compose.yml
+  - .env.example
+alwaysApply: true
+---
+
+# Lenny Growth Assistant rules
+
+- Do not silently change API, streaming, or DB schemas. Update the matching doc in the same PR.
+- Prefer the prioritization order in AGENTS.md over UI polish.
+- Never commit `.env`, API keys, or `data/lennys-podcast-transcripts/`.
+- Generated HTML must never use `dangerouslySetInnerHTML` in the parent app; use sandboxed iframe only.
+- Keep generation and embedding providers separate.
+- Corpus source is ChatPRD/lennys-podcast-transcripts only.

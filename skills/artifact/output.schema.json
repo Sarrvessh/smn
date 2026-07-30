@@ -1,0 +1,12 @@
+{
+  "type": "object",
+  "required": ["title", "artifact_type", "language", "content", "source_ids", "summary"],
+  "properties": {
+    "title": { "type": "string" },
+    "artifact_type": { "enum": ["markdown", "html"] },
+    "language": { "enum": ["markdown", "html"] },
+    "content": { "type": "string" },
+    "source_ids": { "type": "array", "items": { "type": "string" } },
+    "summary": { "type": "string" }
+  }
+}

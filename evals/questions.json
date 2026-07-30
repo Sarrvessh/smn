@@ -1,0 +1,22 @@
+[
+  {"id": "d1", "kind": "direct", "question": "What advice do guests give for improving onboarding?"},
+  {"id": "d2", "kind": "direct", "question": "What signals indicate strong product-market fit?"},
+  {"id": "d3", "kind": "direct", "question": "What do guests say about founder-led sales?"},
+  {"id": "d4", "kind": "direct", "question": "How should teams prioritize product work?"},
+  {"id": "d5", "kind": "direct", "question": "What mistakes do startups make when measuring retention?"},
+  {"id": "s1", "kind": "synthesis", "question": "What recurring patterns appear in advice about product-market fit?"},
+  {"id": "s2", "kind": "synthesis", "question": "How do successful founders balance vision and customer feedback?"},
+  {"id": "s3", "kind": "synthesis", "question": "What common growth strategies appear across different episodes?"},
+  {"id": "s4", "kind": "synthesis", "question": "What principles consistently improve product onboarding?"},
+  {"id": "s5", "kind": "synthesis", "question": "How should an early-stage startup structure customer discovery?"},
+  {"id": "c1", "kind": "comparison", "question": "Compare advice on product strategy from three different guests."},
+  {"id": "c2", "kind": "comparison", "question": "Where do guests disagree about hiring product managers?"},
+  {"id": "c3", "kind": "comparison", "question": "Compare founder-led growth and sales-led growth recommendations."},
+  {"id": "e1", "kind": "ship30", "mode": "auto", "question": "Turn the product-market-fit insights into a Ship30 essay for first-time founders."},
+  {"id": "e2", "kind": "ship30", "mode": "ship30", "question": "Write a Ship30 essay about why onboarding is part of product strategy."},
+  {"id": "a1", "kind": "artifact", "mode": "auto", "question": "Create a Markdown product-market-fit checklist."},
+  {"id": "a2", "kind": "artifact", "mode": "auto", "question": "Create an HTML growth experiment dashboard."},
+  {"id": "u1", "kind": "unsupported", "question": "What treatment does Lenny recommend for appendicitis?"},
+  {"id": "u2", "kind": "unsupported", "question": "Explain quantum entanglement using the transcripts."},
+  {"id": "u3", "kind": "unsupported", "question": "Who won today’s cricket match?"}
+]
