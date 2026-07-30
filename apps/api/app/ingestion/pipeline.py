@@ -4,7 +4,7 @@ import hashlib
 import json
 import logging
 import time
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -13,7 +13,7 @@ from sqlalchemy import delete, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
-from app.core.errors import AppError, EMBEDDING_DIMENSION_MISMATCH
+from app.core.errors import EMBEDDING_DIMENSION_MISMATCH, AppError
 from app.db.models import Episode, MessageSource, TranscriptChunk
 from app.ingestion.chunker import chunk_transcript, count_tokens
 from app.ingestion.parser import discover_transcripts, parse_transcript
@@ -217,7 +217,7 @@ class IngestionPipeline:
                     f"updated={report['episodes_updated']}",
                     flush=True,
                 )
-            except Exception:  # noqa: BLE001
+            except Exception:
                 await self.session.rollback()
                 logger.exception("Failed ingesting %s", path)
                 raise
@@ -225,7 +225,7 @@ class IngestionPipeline:
         # Ensure HNSW index exists (idempotent)
         await self.session.execute(
             text(
-                f"""
+                """
                 DO $$ BEGIN
                   IF NOT EXISTS (
                     SELECT 1 FROM pg_indexes WHERE indexname = 'ix_chunks_embedding_hnsw'
@@ -242,7 +242,7 @@ class IngestionPipeline:
         report["total_duration"] = round(time.time() - started, 2)
         out_dir = Path(__file__).resolve().parents[4] / "docs" / "ingestion-reports"
         out_dir.mkdir(parents=True, exist_ok=True)
-        stamp = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+        stamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
         (out_dir / f"ingest-{stamp}.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
         return report
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from app.core.config import get_settings
-from app.core.errors import AppError, PROVIDER_NOT_CONFIGURED
+from app.core.errors import PROVIDER_NOT_CONFIGURED, AppError
 from app.llm.anthropic_provider import AnthropicProvider
 from app.llm.base import EmbeddingProvider, LLMProvider
 from app.llm.hash_embeddings import HashEmbeddingProvider

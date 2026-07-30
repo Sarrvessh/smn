@@ -4,17 +4,17 @@ import json
 import logging
 import time
 from collections.abc import AsyncIterator
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.agents.formatting import normalize_qa_markdown
 from app.agents.schemas import route_skill
 from app.agents.skills import iter_transcript_qa, run_artifact, run_ship30
-from app.agents.formatting import normalize_qa_markdown
 from app.core.config import get_settings
-from app.core.errors import AppError, INVALID_SESSION, KNOWLEDGE_BASE_EMPTY, OLLAMA_MODEL_MISSING
+from app.core.errors import INVALID_SESSION, KNOWLEDGE_BASE_EMPTY, OLLAMA_MODEL_MISSING, AppError
 from app.core.security import validate_artifact_content
 from app.db.models import AgentRun, Artifact, ChatSession, Message, MessageSource
 from app.ingestion.pipeline import knowledge_status
@@ -73,7 +73,7 @@ async def stream_message(
         model_name = settings.ollama_chat_model
     chat.provider = provider_name
     chat.model = model_name
-    chat.updated_at = datetime.now(timezone.utc)
+    chat.updated_at = datetime.now(UTC)
 
     user_msg = Message(
         id=uuid4(),
@@ -308,7 +308,7 @@ async def stream_message(
         run.duration_ms = int((time.time() - started) * 1000)
         await db.commit()
         yield ndjson("error", code=exc.code, message=exc.message, retryable=exc.retryable)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.exception("stream_message failed")
         assistant_msg.status = "failed"
         assistant_msg.error_code = "INTERNAL_ERROR"

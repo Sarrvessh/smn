@@ -1,9 +1,11 @@
+import pytest
+
+from app.agents.formatting import normalize_qa_markdown
+from app.agents.schemas import route_skill
+from app.core.security import sanitize_html_artifact, validate_artifact_content
 from app.ingestion.chunker import chunk_transcript, count_tokens
 from app.ingestion.parser import normalize_content
-from app.agents.schemas import route_skill
 from app.retrieval.citations import validate_citations
-from app.core.security import sanitize_html_artifact, validate_artifact_content
-import pytest
 
 
 def test_normalize_content_collapses_blank_lines():
@@ -14,7 +16,7 @@ def test_normalize_content_collapses_blank_lines():
 
 
 def test_chunker_respects_max_and_produces_chunks():
-    paras = ["Sentence number %d. " % i * 20 for i in range(30)]
+    paras = [f"Sentence number {i}. " * 20 for i in range(30)]
     text = "\n\n".join(paras)
     chunks = chunk_transcript(text, target_tokens=200, max_tokens=300, overlap_tokens=40)
     assert len(chunks) >= 2
@@ -40,8 +42,6 @@ def test_route_explicit_wins():
 
 
 def test_normalize_qa_markdown_splits_glued_heading():
-    from app.agents.formatting import normalize_qa_markdown
-
     raw = (
         "### Direct Answer Onboarding advice across guests: "
         "- **Proxy Metrics**: Adam [S1]"
@@ -50,6 +50,14 @@ def test_normalize_qa_markdown_splits_glued_heading():
     assert out.startswith("### Direct answer\n")
     assert "Onboarding advice" in out
     assert "\n- **Proxy Metrics**" in out
+
+
+def test_citation_validation_strips_invalid():
+    text, valid, invalid = validate_citations("Claim [S1] and fake [S9]", {"S1"})
+    assert "S1" in valid
+    assert "S9" in invalid
+    assert "[S9]" not in text
+    assert "[S1]" in text
 
 
 def test_html_sanitize_blocks_script():

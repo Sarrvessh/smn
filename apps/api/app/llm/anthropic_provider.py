@@ -6,7 +6,7 @@ from collections.abc import AsyncIterator
 from pydantic import BaseModel
 
 from app.core.config import get_settings
-from app.core.errors import AppError, PROVIDER_NOT_CONFIGURED, PROVIDER_TIMEOUT
+from app.core.errors import PROVIDER_NOT_CONFIGURED, PROVIDER_TIMEOUT, AppError
 from app.llm.base import (
     ChatMessage,
     GenerationOptions,
@@ -73,7 +73,7 @@ class AnthropicProvider:
             return GenerationResult(text=text, model=model, provider=self.id, raw=resp.model_dump())
         except AppError:
             raise
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             if "timeout" in str(exc).lower():
                 raise AppError(PROVIDER_TIMEOUT, "Anthropic request timed out.", retryable=True, status_code=504) from exc
             raise AppError("PROVIDER_ERROR", str(exc), retryable=True, status_code=502) from exc

@@ -184,6 +184,4 @@ def should_abstain(chunks: list[RetrievedChunk]) -> bool:
     has_keyword = any(c.keyword_rank is not None for c in chunks)
     if has_keyword:
         return False
-    if best_vector < 0.25:
-        return True
-    return False
+    return best_vector < 0.25

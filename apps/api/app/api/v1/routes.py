@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from uuid import UUID
+from datetime import UTC, datetime
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, Header, Response
 from pydantic import BaseModel, Field
@@ -8,14 +9,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.errors import AppError, INVALID_SESSION
+from app.core.errors import AppError
 from app.db.models import ChatSession, Message, MessageSource, TranscriptChunk, User
 from app.db.session import get_db
 from app.ingestion.pipeline import knowledge_status
 from app.llm.registry import registry
 from app.services.conversation import get_owned_session
-from datetime import datetime, timezone
-from uuid import uuid4
 
 router = APIRouter()
 
@@ -33,7 +32,7 @@ async def require_user(
     user = (await db.execute(select(User).where(User.id == uid))).scalar_one_or_none()
     if not user:
         raise AppError("UNAUTHORIZED", "Unknown user.", retryable=False, status_code=401)
-    user.last_seen_at = datetime.now(timezone.utc)
+    user.last_seen_at = datetime.now(UTC)
     await db.commit()
     return user
 
@@ -161,10 +160,10 @@ async def patch_session(
     if body.model is not None:
         chat.model = body.model
     if body.archived is True:
-        chat.archived_at = datetime.now(timezone.utc)
+        chat.archived_at = datetime.now(UTC)
     if body.archived is False:
         chat.archived_at = None
-    chat.updated_at = datetime.now(timezone.utc)
+    chat.updated_at = datetime.now(UTC)
     await db.commit()
     await db.refresh(chat)
     return SessionOut(
@@ -185,7 +184,7 @@ async def delete_session(
     db: AsyncSession = Depends(get_db),
 ) -> Response:
     chat = await get_owned_session(db, session_id, user.id)
-    chat.archived_at = datetime.now(timezone.utc)
+    chat.archived_at = datetime.now(UTC)
     await db.commit()
     return Response(status_code=204)
 

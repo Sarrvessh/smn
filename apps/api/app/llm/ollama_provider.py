@@ -3,17 +3,16 @@ from __future__ import annotations
 import json
 import logging
 from collections.abc import AsyncIterator
-from typing import Any
 
 import httpx
 from pydantic import BaseModel
 
 from app.core.config import get_settings
 from app.core.errors import (
-    AppError,
     OLLAMA_MODEL_MISSING,
     OLLAMA_UNAVAILABLE,
     PROVIDER_TIMEOUT,
+    AppError,
 )
 from app.llm.base import (
     ChatMessage,
@@ -124,7 +123,7 @@ class OllamaProvider:
                 return GenerationResult(text=text, model=model, provider=self.id, raw=data)
         except AppError:
             raise
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             raise self._map_error(exc, model) from exc
 
     async def stream(
@@ -140,35 +139,37 @@ class OllamaProvider:
             "options": {"temperature": options.temperature},
         }
         try:
-            async with httpx.AsyncClient(timeout=self.settings.llm_request_timeout_seconds) as client:
-                async with client.stream("POST", f"{self.base_url}/api/chat", json=payload) as resp:
-                    if resp.status_code in {400, 404}:
+            async with (
+                httpx.AsyncClient(timeout=self.settings.llm_request_timeout_seconds) as client,
+                client.stream("POST", f"{self.base_url}/api/chat", json=payload) as resp,
+            ):
+                if resp.status_code in {400, 404}:
+                    detail = ""
+                    try:
+                        detail = (await resp.aread()).decode("utf-8", errors="replace")
+                    except Exception:  # noqa: BLE001
                         detail = ""
-                        try:
-                            detail = (await resp.aread()).decode("utf-8", errors="replace")
-                        except Exception:  # noqa: BLE001
-                            detail = ""
-                        yield StreamEvent(
-                            type="error",
-                            error_code=OLLAMA_MODEL_MISSING,
-                            error_message=(
-                                f"Ollama rejected model '{model}'"
-                                + (f": {detail}" if detail else "")
-                                + f". Select an installed model, or run: ollama pull {model}"
-                            ),
-                        )
+                    yield StreamEvent(
+                        type="error",
+                        error_code=OLLAMA_MODEL_MISSING,
+                        error_message=(
+                            f"Ollama rejected model '{model}'"
+                            + (f": {detail}" if detail else "")
+                            + f". Select an installed model, or run: ollama pull {model}"
+                        ),
+                    )
+                    return
+                resp.raise_for_status()
+                async for line in resp.aiter_lines():
+                    if not line:
+                        continue
+                    data = json.loads(line)
+                    content = data.get("message", {}).get("content", "")
+                    if content:
+                        yield StreamEvent(type="token", text=content)
+                    if data.get("done"):
+                        yield StreamEvent(type="done")
                         return
-                    resp.raise_for_status()
-                    async for line in resp.aiter_lines():
-                        if not line:
-                            continue
-                        data = json.loads(line)
-                        content = data.get("message", {}).get("content", "")
-                        if content:
-                            yield StreamEvent(type="token", text=content)
-                        if data.get("done"):
-                            yield StreamEvent(type="done")
-                            return
         except Exception as exc:  # noqa: BLE001
             err = self._map_error(exc, model)
             yield StreamEvent(type="error", error_code=err.code, error_message=err.message)

@@ -7,11 +7,10 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from app.api.v1.routes import require_user
-from app.core.errors import AppError, INVALID_SESSION
-from app.db.models import Artifact, ChatSession, TranscriptChunk, User
+from app.core.errors import INVALID_SESSION, AppError
+from app.db.models import Artifact, ChatSession, User
 from app.db.session import get_db
 from app.services.conversation import stream_message
 

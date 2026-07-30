@@ -3,29 +3,11 @@ from uuid import uuid4
 from app.retrieval.hybrid_search import (
     RetrievedChunk,
     apply_diversity,
+    format_evidence,
     reciprocal_rank_fusion,
     should_abstain,
-    format_evidence,
     to_source_payload,
 )
-
-
-def _chunk(ep: int, idx: int, vector_rank=None, keyword_rank=None, vscore=None) -> RetrievedChunk:
-    eid = uuid4()
-    # stable episode id per ep number via namespace-ish approach
-    return RetrievedChunk(
-        chunk_id=uuid4(),
-        episode_id=uuid4() if ep < 0 else uuid4(),
-        content=f"content-{ep}-{idx}",
-        guest=f"Guest{ep}",
-        episode_title=f"Episode{ep}",
-        source_url="https://example.com",
-        publish_date=None,
-        vector_rank=vector_rank,
-        vector_score=vscore,
-        keyword_rank=keyword_rank,
-        keyword_score=0.5 if keyword_rank else None,
-    )
 
 
 def test_rrf_combines_ranks():
