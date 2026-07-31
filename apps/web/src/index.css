@@ -220,6 +220,21 @@
   .safe-bottom {
     padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
   }
+
+  .search-overlay {
+    @apply fixed inset-0 z-[60] flex items-start justify-center px-4 pt-[12vh] sm:pt-[14vh];
+  }
+
+  .search-overlay-backdrop {
+    @apply absolute inset-0 bg-foreground/35 backdrop-blur-[2px];
+    animation: search-fade 180ms var(--ease-out) both;
+  }
+
+  .search-dialog {
+    @apply relative z-10 w-full max-w-xl overflow-hidden rounded-2xl border border-border bg-surface-elevated;
+    box-shadow: var(--panel-shadow);
+    animation: search-rise 220ms var(--ease-out) both;
+  }
 }
 
 @layer utilities {
@@ -256,6 +271,28 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes search-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes search-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
   }
 }
 

@@ -60,6 +60,48 @@ class ArtifactOut(BaseModel):
     created_at: str
 
 
+class ArtifactListItem(BaseModel):
+    id: UUID
+    session_id: UUID
+    message_id: UUID
+    type: str
+    title: str
+    language: str
+    created_at: str
+    session_title: str
+    session_archived: bool
+
+
+@router.get("/artifacts", response_model=list[ArtifactListItem])
+async def list_artifacts(
+    user: User = Depends(require_user),
+    db: AsyncSession = Depends(get_db),
+) -> list[ArtifactListItem]:
+    """All workspace artifacts, newest first, with the chat title they belong to."""
+    rows = (
+        await db.execute(
+            select(Artifact, ChatSession.title, ChatSession.archived_at)
+            .join(ChatSession, ChatSession.id == Artifact.session_id)
+            .where(ChatSession.user_id == user.id)
+            .order_by(Artifact.created_at.desc())
+        )
+    ).all()
+    return [
+        ArtifactListItem(
+            id=art.id,
+            session_id=art.session_id,
+            message_id=art.message_id,
+            type=art.type,
+            title=art.title,
+            language=art.language,
+            created_at=art.created_at.isoformat(),
+            session_title=session_title,
+            session_archived=session_archived_at is not None,
+        )
+        for art, session_title, session_archived_at in rows
+    ]
+
+
 @router.get("/artifacts/{artifact_id}")
 async def get_artifact(
     artifact_id: UUID,

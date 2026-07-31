@@ -16,6 +16,7 @@ interface UiState {
   highlightedCitation: string | null;
   isStreaming: boolean;
   statusLabel: string | null;
+  pinnedSessionIds: string[];
 
   setSelectedSessionId: (id: string | null) => void;
   setArtifactPanelOpen: (open: boolean) => void;
@@ -30,9 +31,11 @@ interface UiState {
   setHighlightedCitation: (label: string | null) => void;
   setIsStreaming: (streaming: boolean) => void;
   setStatusLabel: (label: string | null) => void;
+  togglePinnedSession: (id: string) => void;
 }
 
 const THEME_KEY = 'lenny_theme';
+const PINNED_KEY = 'lenny_pinned_sessions';
 
 function getInitialTheme(): ThemePreference {
   if (typeof window === 'undefined') return 'system';
@@ -41,6 +44,25 @@ function getInitialTheme(): ThemePreference {
     return stored;
   }
   return 'system';
+}
+
+function getInitialPinned(): string[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(PINNED_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    return Array.isArray(parsed)
+      ? parsed.filter((id): id is string => typeof id === 'string')
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function persistPinned(ids: string[]) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(PINNED_KEY, JSON.stringify(ids));
 }
 
 export const useUiStore = create<UiState>((set) => ({
@@ -56,6 +78,7 @@ export const useUiStore = create<UiState>((set) => ({
   highlightedCitation: null,
   isStreaming: false,
   statusLabel: null,
+  pinnedSessionIds: getInitialPinned(),
 
   setSelectedSessionId: (id) =>
     set({ selectedSessionId: id, activeSources: [], highlightedCitation: null }),
@@ -77,4 +100,13 @@ export const useUiStore = create<UiState>((set) => ({
   setHighlightedCitation: (label) => set({ highlightedCitation: label }),
   setIsStreaming: (streaming) => set({ isStreaming: streaming }),
   setStatusLabel: (label) => set({ statusLabel: label }),
+  togglePinnedSession: (id) =>
+    set((state) => {
+      const exists = state.pinnedSessionIds.includes(id);
+      const pinnedSessionIds = exists
+        ? state.pinnedSessionIds.filter((x) => x !== id)
+        : [id, ...state.pinnedSessionIds];
+      persistPinned(pinnedSessionIds);
+      return { pinnedSessionIds };
+    }),
 }));

@@ -4,6 +4,7 @@ import { isMockMode, streamMessage } from '../lib/api';
 import { consumeStream } from '../lib/stream';
 import { appendMockMessage, registerMockArtifact } from '../lib/mock';
 import { messagesKey } from './useMessages';
+import { ARTIFACTS_KEY } from './useArtifacts';
 import type {
   ChatMode,
   Message,
@@ -186,6 +187,9 @@ export function useStreamChat() {
           artifact_id: isEssay || isArtifact ? artifactId : null,
         });
         void queryClient.invalidateQueries({ queryKey: ['sessions'] });
+        if (isEssay || isArtifact) {
+          void queryClient.invalidateQueries({ queryKey: ARTIFACTS_KEY });
+        }
         setIsStreaming(false);
         setStatusLabel(null);
         activeAssistantIdRef.current = null;
@@ -293,6 +297,7 @@ export function useStreamChat() {
                       : m,
                   ),
               );
+              void queryClient.invalidateQueries({ queryKey: ARTIFACTS_KEY });
               break;
             case 'completed':
               flushTokens(resolvedAssistantId);

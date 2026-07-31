@@ -34,7 +34,7 @@ async def main() -> int:
             chunks = []
             if kind != "unsupported" and decision.skill != "artifact_generator":
                 try:
-                    chunks = await hybrid_retrieve(session, q)
+                    chunks, _plan = await hybrid_retrieve(session, q)
                 except Exception as exc:  # noqa: BLE001
                     chunks = []
                     err = str(exc)

@@ -87,6 +87,19 @@ export interface Artifact {
   created_at: string;
 }
 
+/** List row from GET /artifacts — no body content. */
+export interface ArtifactListItem {
+  id: string;
+  session_id: string;
+  message_id: string;
+  type: 'markdown' | 'html' | string;
+  title: string;
+  language: string;
+  created_at: string;
+  session_title: string;
+  session_archived: boolean;
+}
+
 export interface ProviderInfo {
   id: string;
   configured: boolean;

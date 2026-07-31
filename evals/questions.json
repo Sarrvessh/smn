@@ -18,5 +18,8 @@
   {"id": "a2", "kind": "artifact", "mode": "auto", "question": "Create an HTML growth experiment dashboard."},
   {"id": "u1", "kind": "unsupported", "question": "What treatment does Lenny recommend for appendicitis?"},
   {"id": "u2", "kind": "unsupported", "question": "Explain quantum entanglement using the transcripts."},
-  {"id": "u3", "kind": "unsupported", "question": "Who won today’s cricket match?"}
+  {"id": "u3", "kind": "unsupported", "question": "Who won today’s cricket match?"},
+  {"id": "g1", "kind": "direct", "question": "What did Nir Eyal say about building habits and reducing distraction?"},
+  {"id": "c4", "kind": "comparison", "question": "Compare Nir Eyal and James Clear style advice on habits if both appear in the transcripts."},
+  {"id": "u4", "kind": "unsupported", "question": "Summarize podcast number 999999 from Lenny's show."}
 ]

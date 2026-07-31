@@ -33,7 +33,7 @@ class Settings(BaseSettings):
 
     rag_vector_candidates: int = 20
     rag_keyword_candidates: int = 20
-    rag_final_chunks: int = 8
+    rag_final_chunks: int = 12
     rag_max_chunks_per_episode: int = 3
     rag_fusion_constant: int = 60
 

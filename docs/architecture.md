@@ -38,7 +38,7 @@ PostgreSQL + pgvector
 
 ## Retrieval
 
-Query embed → vector top-20 + FTS top-20 → reciprocal-rank fusion (k=60) → ≤3 chunks/episode → final 6–8 → citation-labelled evidence.
+Deterministic retrieval planner → optional guest/slug/title/catalog-ordinal scope → 1–3 sub-queries (comparisons / follow-ups) → vector top-20 + FTS top-20 per query → reciprocal-rank fusion (k=60) → guest-aware diversity (≤3 chunks/episode, multi-guest for comparisons) → final ~12 citation-labelled evidence passages. Abstain when evidence is empty, scoped episode is missing, vector similarity is weak, or a comparison lacks contrastive guests.
 
 ## Security boundaries
 

@@ -11,7 +11,7 @@ from app.retrieval.hybrid_search import hybrid_retrieve, to_source_payload
 
 async def _query(q: str) -> None:
     async with AsyncSessionLocal() as session:
-        chunks = await hybrid_retrieve(session, q)
+        chunks, _plan = await hybrid_retrieve(session, q)
         sources = to_source_payload(chunks)
         if not sources:
             print("No results.")

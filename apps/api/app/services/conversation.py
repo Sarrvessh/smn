@@ -4,7 +4,7 @@ import json
 import logging
 import time
 from collections.abc import AsyncIterator
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 from sqlalchemy import select
@@ -75,12 +75,14 @@ async def stream_message(
     chat.model = model_name
     chat.updated_at = datetime.now(UTC)
 
+    now = datetime.now(UTC)
     user_msg = Message(
         id=uuid4(),
         session_id=chat.id,
         role="user",
         content=content,
         status="completed",
+        created_at=now,
     )
     assistant_msg = Message(
         id=uuid4(),
@@ -90,6 +92,8 @@ async def stream_message(
         status="streaming",
         provider=provider_name,
         model=model_name,
+        # Ensure stable user → assistant order when listing by created_at
+        created_at=now + timedelta(milliseconds=1),
     )
     db.add(user_msg)
     db.add(assistant_msg)
@@ -142,11 +146,6 @@ async def stream_message(
 
         yield ndjson("status", stage="retrieving", label="Searching Lenny's transcripts")
         retrieval_started = time.time()
-        chunks = await hybrid_retrieve(db, content)
-        retrieval_ms = int((time.time() - retrieval_started) * 1000)
-        run.retrieved_chunks = len(chunks)
-        sources = to_source_payload(chunks)
-        yield ndjson("sources", sources=sources)
 
         hist_rows = (
             await db.execute(
@@ -164,6 +163,21 @@ async def stream_message(
             for m in reversed(hist_rows)
             if m.role in {"user", "assistant"}
         ]
+        history_texts = [m.content for m in history]
+
+        chunks, retrieval_plan = await hybrid_retrieve(db, content, history_texts=history_texts)
+        retrieval_ms = int((time.time() - retrieval_started) * 1000)
+        run.retrieved_chunks = len(chunks)
+        run.metadata_ = {
+            **(run.metadata_ or {}),
+            "retrieval_intent": retrieval_plan.intent,
+            "retrieval_guests": retrieval_plan.guests,
+            "retrieval_queries": retrieval_plan.queries,
+            "scoped_missing": retrieval_plan.scoped_missing,
+        }
+        await db.commit()
+        sources = to_source_payload(chunks)
+        yield ndjson("sources", sources=sources)
 
         yield ndjson("status", stage="generating", label="Generating answer…")
         gen_started = time.time()
@@ -196,7 +210,13 @@ async def stream_message(
             # Live token stream for Q&A
             parts: list[str] = []
             async for piece in iter_transcript_qa(
-                content, chunks, history, provider_name, model_name
+                content,
+                chunks,
+                history,
+                provider_name,
+                model_name,
+                intent=retrieval_plan.intent,
+                scoped_missing=retrieval_plan.scoped_missing,
             ):
                 parts.append(piece)
                 yield ndjson("token", text=piece)
@@ -287,7 +307,12 @@ async def stream_message(
             "retrieval_ms": retrieval_ms,
             "generation_ms": generation_ms,
             "invalid_citations": invalid_cites,
-            "abstained": should_abstain(chunks) and decision.skill == "transcript_qa",
+            "abstained": should_abstain(
+                chunks,
+                intent=retrieval_plan.intent,
+                scoped_missing=retrieval_plan.scoped_missing,
+            )
+            and decision.skill == "transcript_qa",
         }
         if chat.title == "New chat" and content.strip():
             chat.title = content.strip()[:80]

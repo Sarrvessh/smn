@@ -5,7 +5,7 @@ async function resetAndOpen(page: Page) {
     localStorage.clear();
   });
   await page.goto('/');
-  await expect(page.getByText('Lenny Growth Assistant').first()).toBeVisible({
+  await expect(page.getByText('Signal').first()).toBeVisible({
     timeout: 15_000,
   });
 }
@@ -21,7 +21,7 @@ async function sendMessage(page: Page, content: string) {
   await composer.press('Enter');
 }
 
-test.describe('Lenny Growth Assistant primary UI flows', () => {
+test.describe('Signal primary UI flows', () => {
   test('persistent chat survives refresh', async ({ page }) => {
     await resetAndOpen(page);
     await newChat(page);

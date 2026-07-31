@@ -1,5 +1,6 @@
 import type {
   Artifact,
+  ArtifactListItem,
   KnowledgeStatus,
   Message,
   ProvidersHealth,
@@ -47,8 +48,11 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   return (await res.json()) as T;
 }
 
-export async function listSessions(): Promise<Session[]> {
-  return apiFetch<Session[]>('/sessions');
+export async function listSessions(opts?: {
+  archived?: boolean;
+}): Promise<Session[]> {
+  const qs = opts?.archived ? '?archived=true' : '';
+  return apiFetch<Session[]>(`/sessions${qs}`);
 }
 
 export async function createSession(body: SessionCreate): Promise<Session> {
@@ -78,6 +82,10 @@ export async function archiveSession(sessionId: string): Promise<void> {
 
 export async function listMessages(sessionId: string): Promise<Message[]> {
   return apiFetch<Message[]>(`/sessions/${sessionId}/messages`);
+}
+
+export async function listArtifacts(): Promise<ArtifactListItem[]> {
+  return apiFetch<ArtifactListItem[]>('/artifacts');
 }
 
 export async function getArtifact(artifactId: string): Promise<Artifact> {

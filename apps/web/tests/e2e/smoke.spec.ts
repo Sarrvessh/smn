@@ -1,10 +1,10 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Lenny Growth Assistant smoke', () => {
+test.describe('Signal smoke', () => {
   test('loads the branded three-pane shell', async ({ page }) => {
     await page.goto('/');
     await expect(
-      page.locator(':text("Lenny Growth Assistant"):visible').first(),
+      page.locator(':text("Signal"):visible').first(),
     ).toBeVisible({ timeout: 15_000 });
     await expect(page.locator('textarea').first()).toBeVisible();
   });

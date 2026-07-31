@@ -5,6 +5,7 @@ import type {
   Message,
   ProvidersHealth,
   Session,
+  ArtifactListItem,
 } from '../types/api';
 
 const MOCK_USER: AnonymousUser = {
@@ -127,8 +128,22 @@ export const mockApi = {
     return Promise.resolve(MOCK_USER);
   },
 
-  listSessions(): Promise<Session[]> {
-    return Promise.resolve([...mockSessions]);
+  listSessions(opts?: { archived?: boolean }): Promise<Session[]> {
+    const archived = !!opts?.archived;
+    const rows = mockSessions.filter((s) =>
+      archived ? s.archived_at != null : s.archived_at == null,
+    );
+    return Promise.resolve(
+      [...rows].sort((a, b) => {
+        const ta = Date.parse(
+          archived ? (a.archived_at ?? a.updated_at) : a.updated_at,
+        );
+        const tb = Date.parse(
+          archived ? (b.archived_at ?? b.updated_at) : b.updated_at,
+        );
+        return tb - ta;
+      }),
+    );
   },
 
   createSession(body: Partial<Session>): Promise<Session> {
@@ -161,9 +176,12 @@ export const mockApi = {
             : body.archived_at ?? s.archived_at;
       return {
         ...s,
-        ...body,
+        title: body.title ?? s.title,
+        provider: body.provider ?? s.provider,
+        model: body.model ?? s.model,
         archived_at,
-        updated_at: new Date().toISOString(),
+        // Rename / settings must not reshuffle sidebar order
+        updated_at: s.updated_at,
       };
     });
     const session = mockSessions.find((s) => s.id === id);
@@ -173,13 +191,35 @@ export const mockApi = {
   },
 
   archiveSession(id: string): Promise<void> {
-    mockSessions = mockSessions.filter((s) => s.id !== id);
+    mockSessions = mockSessions.map((s) =>
+      s.id === id ? { ...s, archived_at: new Date().toISOString() } : s,
+    );
     saveState();
     return Promise.resolve();
   },
 
   listMessages(sessionId: string): Promise<Message[]> {
     return Promise.resolve(mockMessages[sessionId] ?? []);
+  },
+
+  listArtifacts(): Promise<ArtifactListItem[]> {
+    const bySession = new Map(mockSessions.map((s) => [s.id, s]));
+    const items: ArtifactListItem[] = Object.values(mockArtifacts).map((art) => {
+      const session = bySession.get(art.session_id);
+      return {
+        id: art.id,
+        session_id: art.session_id,
+        message_id: art.message_id,
+        type: art.type,
+        title: art.title,
+        language: art.language,
+        created_at: art.created_at,
+        session_title: session?.title ?? 'Unknown chat',
+        session_archived: session?.archived_at != null,
+      };
+    });
+    items.sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
+    return Promise.resolve(items);
   },
 
   getArtifact(id: string): Promise<Artifact> {

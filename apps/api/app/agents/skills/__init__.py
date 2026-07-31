@@ -30,8 +30,11 @@ async def run_transcript_qa(
     history: list[ChatMessage],
     provider: str,
     model: str | None,
+    *,
+    intent: str = "direct",
+    scoped_missing: bool = False,
 ) -> QAResult:
-    if should_abstain(chunks):
+    if should_abstain(chunks, intent=intent, scoped_missing=scoped_missing):
         return QAResult(answer_markdown=ABSTAIN, source_ids=[], confidence=0.1)
 
     evidence = format_evidence(chunks)
@@ -60,9 +63,12 @@ async def iter_transcript_qa(
     history: list[ChatMessage],
     provider: str,
     model: str | None,
+    *,
+    intent: str = "direct",
+    scoped_missing: bool = False,
 ):
     """Yield markdown text chunks as the model streams."""
-    if should_abstain(chunks):
+    if should_abstain(chunks, intent=intent, scoped_missing=scoped_missing):
         yield ABSTAIN
         return
 

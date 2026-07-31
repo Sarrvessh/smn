@@ -7,6 +7,7 @@ import { SessionSidebar } from './features/sessions/SessionSidebar';
 import { useSessions } from './hooks/useSessions';
 import { useUiStore } from './stores/ui';
 import { IconMenu, IconPanel, IconSun } from './components/Icons';
+import { PRODUCT_NAME } from './lib/brand';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -32,7 +33,14 @@ function AppShell() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    if (!selectedSessionId && sessions.length > 0) {
+    if (sessions.length === 0) {
+      if (selectedSessionId) setSelectedSessionId(null);
+      return;
+    }
+    const stillExists = selectedSessionId
+      ? sessions.some((s) => s.id === selectedSessionId)
+      : false;
+    if (!stillExists) {
       setSelectedSessionId(sessions[0].id);
     }
   }, [sessions, selectedSessionId, setSelectedSessionId]);
@@ -88,7 +96,7 @@ function AppShell() {
           <IconMenu />
         </button>
         <span className="min-w-0 truncate text-[13px] font-semibold tracking-tight">
-          Lenny Growth Assistant
+          {PRODUCT_NAME}
         </span>
         <div className="flex items-center gap-0.5">
           <button

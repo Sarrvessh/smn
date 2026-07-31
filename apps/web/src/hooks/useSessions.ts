@@ -11,6 +11,7 @@ import type { Session, SessionCreate, SessionUpdate } from '../types/api';
 import { useUiStore } from '../stores/ui';
 
 const SESSIONS_KEY = ['sessions'] as const;
+export const ARCHIVED_SESSIONS_KEY = ['sessions', 'archived'] as const;
 
 export function useSessions(enabled = true) {
   const queryClient = useQueryClient();
@@ -28,7 +29,6 @@ export function useSessions(enabled = true) {
     mutationFn: (body: SessionCreate = {}) =>
       isMockMode() ? mockApi.createSession(body) : createSession(body),
     onSuccess: (session) => {
-      // Optimistically insert so the main pane switches immediately
       queryClient.setQueryData<Session[]>(SESSIONS_KEY, (prev) => {
         const list = prev ?? [];
         if (list.some((s) => s.id === session.id)) return list;
@@ -44,19 +44,67 @@ export function useSessions(enabled = true) {
       isMockMode()
         ? mockApi.updateSession(id, body)
         : updateSession(id, body),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: SESSIONS_KEY });
+    onSuccess: (session) => {
+      queryClient.setQueryData<Session[]>(SESSIONS_KEY, (prev) =>
+        (prev ?? []).map((s) =>
+          s.id === session.id
+            ? {
+                ...s,
+                title: session.title,
+                provider: session.provider,
+                model: session.model,
+                archived_at: session.archived_at,
+                updated_at: session.updated_at ?? s.updated_at,
+              }
+            : s,
+        ),
+      );
+      void queryClient.invalidateQueries({ queryKey: ARCHIVED_SESSIONS_KEY });
     },
   });
 
   const archiveMutation = useMutation({
     mutationFn: (id: string) =>
       isMockMode() ? mockApi.archiveSession(id) : archiveSession(id),
-    onSuccess: (_data, archivedId) => {
-      void queryClient.invalidateQueries({ queryKey: SESSIONS_KEY });
+    onMutate: async (archivedId) => {
+      await queryClient.cancelQueries({ queryKey: SESSIONS_KEY });
+      const previous = queryClient.getQueryData<Session[]>(SESSIONS_KEY) ?? [];
+      const next = previous.filter((s) => s.id !== archivedId);
+      queryClient.setQueryData<Session[]>(SESSIONS_KEY, next);
+
       if (selectedSessionId === archivedId) {
-        setSelectedSessionId(null);
+        setSelectedSessionId(next[0]?.id ?? null);
       }
+      return { previous };
+    },
+    onError: (_err, _archivedId, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData<Session[]>(SESSIONS_KEY, context.previous);
+      }
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: SESSIONS_KEY });
+      void queryClient.invalidateQueries({ queryKey: ARCHIVED_SESSIONS_KEY });
+    },
+  });
+
+  const restoreMutation = useMutation({
+    mutationFn: (id: string) =>
+      isMockMode()
+        ? mockApi.updateSession(id, { archived: false })
+        : updateSession(id, { archived: false }),
+    onSuccess: (session) => {
+      queryClient.setQueryData<Session[]>(ARCHIVED_SESSIONS_KEY, (prev) =>
+        (prev ?? []).filter((s) => s.id !== session.id),
+      );
+      queryClient.setQueryData<Session[]>(SESSIONS_KEY, (prev) => {
+        const list = prev ?? [];
+        if (list.some((s) => s.id === session.id)) return list;
+        return [{ ...session, archived_at: null }, ...list];
+      });
+      setSelectedSessionId(session.id);
+      void queryClient.invalidateQueries({ queryKey: SESSIONS_KEY });
+      void queryClient.invalidateQueries({ queryKey: ARCHIVED_SESSIONS_KEY });
     },
   });
 
@@ -72,5 +120,25 @@ export function useSessions(enabled = true) {
       updateMutation.mutateAsync({ id, body }),
     archiveSession: archiveMutation.mutateAsync,
     isArchiving: archiveMutation.isPending,
+    restoreSession: restoreMutation.mutateAsync,
+    isRestoring: restoreMutation.isPending,
+    archiveError:
+      archiveMutation.error instanceof Error
+        ? archiveMutation.error.message
+        : archiveMutation.error
+          ? 'Could not archive chat.'
+          : null,
+    clearArchiveError: () => archiveMutation.reset(),
   };
+}
+
+export function useArchivedSessions(enabled = false) {
+  return useQuery({
+    queryKey: ARCHIVED_SESSIONS_KEY,
+    queryFn: () =>
+      isMockMode()
+        ? mockApi.listSessions({ archived: true })
+        : listSessions({ archived: true }),
+    enabled,
+  });
 }

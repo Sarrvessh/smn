@@ -194,7 +194,7 @@ export function ArtifactViewer() {
             <div className="max-w-sm">
               <p className="text-sm font-semibold">No artifact selected</p>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Ship30 essays, Markdown briefs, and HTML strategy dashboards open here when a response creates one.
+                Ship30 essays, Markdown briefs, and HTML strategy dashboards open here when a response creates one. Use Artifacts in the sidebar to browse every artifact and jump to its chat.
               </p>
             </div>
           </div>

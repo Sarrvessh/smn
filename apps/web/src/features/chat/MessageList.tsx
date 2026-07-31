@@ -5,6 +5,7 @@ import remarkGfm from 'remark-gfm';
 import type { Message, Source, StreamSource } from '../../types/api';
 import { SUGGESTED_PROMPTS } from '../../types/api';
 import { useUiStore } from '../../stores/ui';
+import { BrandMark } from '../../components/BrandLockup';
 import {
   IconCopy,
   IconPanel,
@@ -202,7 +203,7 @@ export function MessageList({
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col px-4 py-6 sm:px-6">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-6 sm:px-6">
       {messages.map((message, idx) => {
         const isUser = message.role === 'user';
         const isLastAssistant =
@@ -219,100 +220,95 @@ export function MessageList({
         return (
           <article
             key={message.id}
-            className={`group/message message-enter flex gap-3 py-5 ${
-              isUser ? 'justify-end' : 'justify-start'
-            }`}
+            className="group/message message-enter w-full"
           >
-            {!isUser && (
-              <div className="mt-0.5 hidden h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent text-[10px] font-bold text-accent-foreground sm:flex">
-                LG
+            {isUser ? (
+              <div className="flex w-full justify-end">
+                <div className="max-w-[min(85%,36rem)] rounded-2xl rounded-br-md bg-foreground px-4 py-3 text-[14px] leading-6 text-background">
+                  <p className="whitespace-pre-wrap">{message.content}</p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex w-full gap-3">
+                <BrandMark size={28} className="mt-0.5 hidden sm:inline-flex" />
+                <div className="min-w-0 flex-1">
+                  <div className="min-w-0 text-[15px] leading-7 text-foreground">
+                    {message.content ? (
+                      <CitationMarkdown
+                        content={message.content}
+                        onCitationClick={(label) =>
+                          handleCitationClick(label, message)
+                        }
+                      />
+                    ) : isLastAssistant ? (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <span className="status-dot warning animate-pulse" />
+                        <span className="streaming-cursor text-[14px]">
+                          Generating answer
+                        </span>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {message.status === 'failed' && (
+                    <div className="mt-3 rounded-xl border border-destructive/25 bg-destructive/10 p-3 text-[13px]">
+                      <p className="font-semibold text-destructive">
+                        {message.error_code ?? 'Generation failed'}
+                      </p>
+                      <p className="mt-1 text-muted-foreground">
+                        Retry keeps this chat intact. The composer stays available below.
+                      </p>
+                      {previousUserContent && (
+                        <button
+                          type="button"
+                          className="btn-secondary mt-3 gap-1"
+                          onClick={() => onRetry(previousUserContent)}
+                        >
+                          <IconRetry className="h-3.5 w-3.5" />
+                          Retry this question
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {message.skill && message.status === 'completed' && (
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                      <span>{message.skill}</span>
+                      {message.provider && message.model && (
+                        <span>
+                          {message.provider} / {message.model}
+                        </span>
+                      )}
+                      {message.sources.length > 0 && (
+                        <span>{message.sources.length} sources</span>
+                      )}
+                      {message.latency_ms != null && (
+                        <span>{(message.latency_ms / 1000).toFixed(1)}s</span>
+                      )}
+                    </div>
+                  )}
+
+                  {message.status === 'cancelled' && (
+                    <p className="mt-2 text-[12px] text-muted-foreground">
+                      Generation stopped. Partial response preserved — retry anytime.
+                    </p>
+                  )}
+
+                  {message.status !== 'streaming' && (
+                    <MessageActions
+                      message={message}
+                      previousUserContent={previousUserContent}
+                      onOpenSources={onOpenSources}
+                      onRetry={onRetry}
+                    />
+                  )}
+                </div>
               </div>
             )}
-
-            <div className={`${isUser ? 'max-w-[min(85%,36rem)]' : 'min-w-0 flex-1'}`}>
-              <div
-                className={
-                  isUser
-                    ? 'rounded-2xl rounded-br-md bg-foreground px-4 py-3 text-[14px] leading-6 text-background'
-                    : 'min-w-0 text-[15px] leading-7 text-foreground'
-                }
-              >
-                {isUser ? (
-                  <p className="whitespace-pre-wrap">{message.content}</p>
-                ) : message.content ? (
-                  <CitationMarkdown
-                    content={message.content}
-                    onCitationClick={(label) =>
-                      handleCitationClick(label, message)
-                    }
-                  />
-                ) : isLastAssistant ? (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <span className="status-dot warning animate-pulse" />
-                    <span className="streaming-cursor text-[14px]">
-                      Generating answer
-                    </span>
-                  </div>
-                ) : null}
-              </div>
-
-              {message.status === 'failed' && (
-                <div className="mt-3 rounded-xl border border-destructive/25 bg-destructive/10 p-3 text-[13px]">
-                  <p className="font-semibold text-destructive">
-                    {message.error_code ?? 'Generation failed'}
-                  </p>
-                  <p className="mt-1 text-muted-foreground">
-                    Retry keeps this chat intact. The composer stays available below.
-                  </p>
-                  {previousUserContent && (
-                    <button
-                      type="button"
-                      className="btn-secondary mt-3 gap-1"
-                      onClick={() => onRetry(previousUserContent)}
-                    >
-                      <IconRetry className="h-3.5 w-3.5" />
-                      Retry this question
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {!isUser && message.skill && message.status === 'completed' && (
-                <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-                  <span>{message.skill}</span>
-                  {message.provider && message.model && (
-                    <span>
-                      {message.provider} / {message.model}
-                    </span>
-                  )}
-                  {message.sources.length > 0 && (
-                    <span>{message.sources.length} sources</span>
-                  )}
-                  {message.latency_ms != null && (
-                    <span>{(message.latency_ms / 1000).toFixed(1)}s</span>
-                  )}
-                </div>
-              )}
-
-              {message.status === 'cancelled' && (
-                <p className="mt-2 text-[12px] text-muted-foreground">
-                  Generation stopped. Partial response preserved — retry anytime.
-                </p>
-              )}
-
-              {!isUser && message.status !== 'streaming' && (
-                <MessageActions
-                  message={message}
-                  previousUserContent={previousUserContent}
-                  onOpenSources={onOpenSources}
-                  onRetry={onRetry}
-                />
-              )}
-            </div>
           </article>
         );
       })}
-      <div className="h-6" aria-hidden="true" />
+      <div className="h-6 shrink-0" aria-hidden="true" />
     </div>
   );
 }

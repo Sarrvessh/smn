@@ -41,7 +41,9 @@ Response `201`:
 
 ### `GET /sessions`
 
-Returns non-archived sessions for the user, newest first.
+Returns non-archived sessions for the user, newest first (`updated_at` desc).
+
+Query: `?archived=true` — return soft-archived sessions only (Library), newest archive first.
 
 ### `GET /sessions/{session_id}`
 
@@ -50,6 +52,8 @@ Returns non-archived sessions for the user, newest first.
 ```json
 { "title": "...", "provider": "ollama", "model": "...", "archived": false }
 ```
+
+Does **not** change `updated_at`. Sidebar recency / Today–Older grouping only moves when a new message is sent on the session.
 
 ### `DELETE /sessions/{session_id}`
 
@@ -98,6 +102,26 @@ Request:
 Response: `Content-Type: application/x-ndjson` — see [streaming-contract.md](streaming-contract.md).
 
 ## Artifacts
+
+### `GET /artifacts`
+
+Returns all artifacts for the shared workspace, newest first. List items omit `content` (fetch via `GET /artifacts/{id}`). Each item includes the chat it was created in.
+
+```json
+[
+  {
+    "id": "uuid",
+    "session_id": "uuid",
+    "message_id": "uuid",
+    "type": "markdown",
+    "title": "...",
+    "language": "markdown",
+    "created_at": "ISO-8601",
+    "session_title": "PMF retention patterns",
+    "session_archived": false
+  }
+]
+```
 
 ### `GET /artifacts/{artifact_id}`
 

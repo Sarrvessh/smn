@@ -2,9 +2,10 @@
 
 ## Dataset
 
-- File: `evals/questions.json` (20 items)
+- File: `evals/questions.json` (23 items)
 - Routes: `evals/expected-routes.json`
-- Kinds: direct (5), synthesis (5), comparison (3), Ship30 (2), artifact (2), unsupported (3)
+- Kinds: direct, synthesis, comparison, Ship30, artifact, unsupported
+- Includes guest-scoped, comparison, and out-of-range episode-number cases for the retrieval planner
 
 ## How to run
 
@@ -31,10 +32,12 @@ Requires Postgres with ingested chunks for retrieval hit-rate. Route accuracy ru
 - Do not claim zero hallucinations.
 - Local chat model quality varies; Anthropic improves long-form Ship30/artifacts.
 - For smoke ingest without an Ollama embed model, set `OLLAMA_EMBED_MODEL=hash` (deterministic vectors). Prefer `embeddinggemma` or `nomic-embed-text` for production-quality retrieval.
+- Automated `evaluate_rag` still checks route + “got some chunks” only. Guest scoping, comparison coverage, and true abstention need manual or LLM-judge review after planner changes.
+- Episode “number N” resolves to the Nth episode by `publish_date` (not ingest counter). Out-of-range numbers should abstain.
 
 ## Latest automated summary
 
-**Route accuracy (offline):** 20/20 = **100%**
+**Route accuracy (offline):** 20/20 = **100%** (re-run after adding g1/c4/u4)
 
 **Smoke knowledge base (hash embeddings, `--limit 5`):**
 
@@ -43,3 +46,4 @@ Requires Postgres with ingested chunks for retrieval hit-rate. Route accuracy ru
 - Query `product-market fit` returned 8 cited passages with guests, titles, excerpts, and scores
 
 Re-run `make evaluate` after full corpus ingest with a real embedding model and paste JSON below.
+

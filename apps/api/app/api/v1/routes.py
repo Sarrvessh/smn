@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, Query, Response
 from pydantic import BaseModel, Field
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -33,12 +33,13 @@ async def require_user(db: AsyncSession = Depends(get_db)) -> User:
         )
         db.add(user)
         await db.flush()
-        # Fold any legacy per-browser sessions into the shared workspace
-        await db.execute(
-            update(ChatSession)
-            .where(ChatSession.user_id != SHARED_WORKSPACE_USER_ID)
-            .values(user_id=SHARED_WORKSPACE_USER_ID)
-        )
+
+    # Always fold any legacy per-browser sessions into the shared workspace
+    await db.execute(
+        update(ChatSession)
+        .where(ChatSession.user_id != SHARED_WORKSPACE_USER_ID)
+        .values(user_id=SHARED_WORKSPACE_USER_ID)
+    )
     user.last_seen_at = datetime.now(UTC)
     await db.commit()
     await db.refresh(user)
@@ -111,14 +112,22 @@ async def create_session(
 async def list_sessions(
     user: User = Depends(require_user),
     db: AsyncSession = Depends(get_db),
+    archived: bool = Query(
+        False,
+        description="When true, return soft-archived sessions only (Library).",
+    ),
 ) -> list[SessionOut]:
-    rows = (
-        await db.execute(
-            select(ChatSession)
-            .where(ChatSession.user_id == user.id, ChatSession.archived_at.is_(None))
-            .order_by(ChatSession.updated_at.desc())
-        )
-    ).scalars().all()
+    clause = (
+        ChatSession.archived_at.is_not(None)
+        if archived
+        else ChatSession.archived_at.is_(None)
+    )
+    stmt = select(ChatSession).where(ChatSession.user_id == user.id, clause)
+    if archived:
+        stmt = stmt.order_by(ChatSession.archived_at.desc())
+    else:
+        stmt = stmt.order_by(ChatSession.updated_at.desc())
+    rows = (await db.execute(stmt)).scalars().all()
     return [
         SessionOut(
             id=s.id,
@@ -169,7 +178,7 @@ async def patch_session(
         chat.archived_at = datetime.now(UTC)
     if body.archived is False:
         chat.archived_at = None
-    chat.updated_at = datetime.now(UTC)
+    # Do not bump updated_at here — sidebar order only moves when the chat is messaged.
     await db.commit()
     await db.refresh(chat)
     return SessionOut(
@@ -235,7 +244,7 @@ async def list_messages(
                 .selectinload(MessageSource.chunk)
                 .selectinload(TranscriptChunk.episode)
             )
-            .order_by(Message.created_at.asc())
+            .order_by(Message.created_at.asc(), Message.role.desc())
         )
     ).scalars().all()
     artifact_by_message: dict[UUID, UUID] = {}

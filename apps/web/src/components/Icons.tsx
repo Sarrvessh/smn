@@ -228,3 +228,40 @@ export function IconExpand(props: IconProps) {
     ),
   });
 }
+
+export function IconSearch(props: IconProps) {
+  return base({
+    ...props,
+    children: (
+      <>
+        <circle cx="11" cy="11" r="6.5" />
+        <path d="M16.5 16.5L21 21" />
+      </>
+    ),
+  });
+}
+
+export function IconLibrary(props: IconProps) {
+  return base({
+    ...props,
+    children: (
+      <>
+        <path d="M5 4h4v16H5z" />
+        <path d="M11 4h8v16h-8z" />
+        <path d="M14 8h2" />
+      </>
+    ),
+  });
+}
+
+export function IconPin(props: IconProps) {
+  return base({
+    ...props,
+    children: (
+      <>
+        <path d="M12 17v5" />
+        <path d="M8 3l1.5 1.5L8 10l-3 3h14l-3-3-1.5-5.5L16 3" />
+      </>
+    ),
+  });
+}

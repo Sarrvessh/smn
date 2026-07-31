@@ -1,4 +1,4 @@
-# Product Context - Lenny Growth Assistant
+# Product Context - Signal
 
 ## Platform
 
@@ -14,7 +14,7 @@ Users run the application locally, choose an available AI provider, and work acr
 
 ## Product Purpose
 
-Lenny Growth Assistant turns Lenny's Podcast transcript corpus into grounded product research. It answers questions with validated citations, compares advice across episodes, and converts sourced insights into Ship30for30 essays or Markdown and HTML/CSS artifacts.
+Signal turns Lenny's Podcast transcript corpus into grounded product research. It answers questions with validated citations, compares advice across episodes, and converts sourced insights into Ship30for30 essays or Markdown and HTML/CSS artifacts. Product display name is Signal (short, independent of the corpus host).
 
 ## Positioning
 
@@ -49,6 +49,7 @@ Unlike a general-purpose chatbot, every research answer can be traced to the pod
 
 ## Brand Commitments
 
+- Display name: **Signal**. Tagline: Growth research. Mark: rising signal bars (not letter initials).
 - Calm, direct, evidence-led, and professionally useful.
 - Confident without overstating what the corpus supports.
 - Clear about unavailable providers, missing models, and incomplete evidence.

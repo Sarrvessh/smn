@@ -1,6 +1,6 @@
 ---
-name: Lenny Growth Assistant
-description: Conversation-first product research workspace grounded in Lenny's Podcast transcripts
+name: Signal
+description: Conversation-first growth research workspace grounded in podcast transcript evidence
 colors:
   background: "hsl(240 6% 97%)"
   foreground: "hsl(240 10% 8%)"
@@ -26,6 +26,18 @@ typography:
     fontWeight: 500
     lineHeight: 1.4
     letterSpacing: "-0.011em"
+  brand:
+    fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "14px"
+    fontWeight: 600
+    lineHeight: 1.2
+    letterSpacing: "-0.02em"
+  brand-tagline:
+    fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "11px"
+    fontWeight: 500
+    lineHeight: 1.3
+    letterSpacing: "-0.01em"
   body:
     fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif"
     fontSize: "15px"
@@ -70,7 +82,7 @@ components:
 
 ## Overview
 
-Lenny Growth Assistant is a conversation-first research workspace. The visual system follows a **Linear × ChatGPT × Apple** craft bar: cool zinc neutrals, indigo accent, Inter with tight tracking, premium spacing, and a sticky floating composer. The conversation column stays primary; sessions and artifacts are secondary rails.
+Signal is a conversation-first growth research workspace. Brand lockup: indigo mark with rising signal bars + wordmark “Signal” / “Growth research”. The visual system follows a **Linear × ChatGPT × Apple** craft bar: cool zinc neutrals, indigo accent, Inter with tight tracking, premium spacing, and a sticky floating composer. The conversation column stays primary; sessions and artifacts are secondary rails.
 
 ## Colors
 
@@ -78,7 +90,7 @@ Restrained palette. Light mode uses cool gray paper (`background`) with white su
 
 ## Typography
 
-Single family: Inter (Linear craft). UI chrome sits at 11–13px medium; conversation body at 15px / 1.75; empty-state display at ~1.75–2rem semibold with tight tracking (−0.02em). Avoid display serifs and costume monospace outside code.
+Single family: Inter (Linear craft). UI chrome sits at 11–13px medium; conversation body at 15px / 1.75; empty-state display at ~1.75–2rem semibold with tight tracking (−0.02em). Brand lockup uses 14px semibold wordmark + 11px medium tagline. Avoid display serifs and costume monospace outside code.
 
 ## Layout
 
@@ -94,7 +106,7 @@ Controls use 6–8px radii; composer and sheets use 12–16px. Consistent icon b
 
 ## Components
 
-Shared classes: `btn-primary`, `btn-secondary`, `btn-ghost`, `icon-button`, `input-field`, `select-field`, `segmented`. SVG icons share one stroke weight. Loading uses skeletons; streaming uses a status dot + caret. Message actions (copy / retry / sources) appear on hover/focus.
+Shared classes: `btn-primary`, `btn-secondary`, `btn-ghost`, `icon-button`, `input-field`, `select-field`, `segmented`. SVG icons share one stroke weight. Loading uses skeletons; streaming uses a status dot + caret. Message actions (copy / retry / sources) appear on hover/focus. Session search is an icon / nav row that opens a centered command-palette dialog (`search-dialog`). Library opens archived chats for restore. Artifacts opens a dialog listing every generated artifact with its source chat title; selecting one switches to that chat and opens the artifact workspace. Pinned chats are client-persisted and listed above Recents. Do not invent Projects, Scheduled, or Plugins in the sidebar.
 
 ## Do's and Don'ts
 
