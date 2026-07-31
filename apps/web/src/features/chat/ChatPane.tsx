@@ -32,6 +32,7 @@ export function ChatPane({ onOpenSidebar }: ChatPaneProps) {
   const sourcePanelOpen = useUiStore((s) => s.sourcePanelOpen);
   const setSourcePanelOpen = useUiStore((s) => s.setSourcePanelOpen);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const stickToBottomRef = useRef(true);
 
   const { sessions, updateSession, createSession, isCreating } = useSessions();
   const { messages, isLoading, error } = useMessages(selectedSessionId);
@@ -58,11 +59,18 @@ export function ChatPane({ onOpenSidebar }: ChatPaneProps) {
     }
   }, [displaySources, activeSources.length, setActiveSources]);
 
-  useEffect(() => {
+  const handleScroll = () => {
     const node = scrollRef.current;
     if (!node) return;
+    const distance = node.scrollHeight - node.scrollTop - node.clientHeight;
+    stickToBottomRef.current = distance < 80;
+  };
+
+  useEffect(() => {
+    const node = scrollRef.current;
+    if (!node || !stickToBottomRef.current) return;
     node.scrollTop = node.scrollHeight;
-  }, [messages, isStreaming, statusLabel]);
+  }, [messages, isStreaming]);
 
   const activeProvider = providerData?.providers.find(
     (p) => p.id === session?.provider,
@@ -70,10 +78,10 @@ export function ChatPane({ onOpenSidebar }: ChatPaneProps) {
   const providerStatus = providerState(activeProvider);
 
   const blockedReason = useMemo(() => {
-    // Only hard-block on real provider / knowledge failures — never on selection races.
-    const provider = activeProvider
-      ?? providerData?.providers.find((p) => p.id === 'ollama')
-      ?? null;
+    const provider =
+      activeProvider ??
+      providerData?.providers.find((p) => p.id === 'ollama') ??
+      null;
     if (provider && !provider.configured) {
       return `${provider.id} is not configured. Switch to Ollama or add credentials.`;
     }
@@ -90,13 +98,11 @@ export function ChatPane({ onOpenSidebar }: ChatPaneProps) {
     return null;
   }, [activeProvider, knowledge, providerData?.providers]);
 
-  // Auto-heal: if selection points at a missing session, pick the newest one
   useEffect(() => {
     if (sessions.length === 0) return;
     if (session) return;
-    if (selectedSessionId && sessions.some((s) => s.id === selectedSessionId)) {
-      return;
-    }
+    // Don't snap back while a newly created session is still hydrating into the list
+    if (selectedSessionId) return;
     useUiStore.getState().setSelectedSessionId(sessions[0].id);
   }, [session, sessions, selectedSessionId]);
 
@@ -110,6 +116,7 @@ export function ChatPane({ onOpenSidebar }: ChatPaneProps) {
 
   const handleSend = useCallback(
     async (content: string, mode: ChatMode) => {
+      stickToBottomRef.current = true;
       let targetSession = session ?? sessions[0] ?? null;
       if (targetSession && !session) {
         useUiStore.getState().setSelectedSessionId(targetSession.id);
@@ -147,8 +154,8 @@ export function ChatPane({ onOpenSidebar }: ChatPaneProps) {
   const showBlockingLoad = isLoading && messages.length === 0;
 
   return (
-    <main className="relative flex h-full min-w-0 flex-1 flex-col bg-background">
-      <header className="z-10 flex min-h-12 items-center gap-2 border-b border-border bg-surface/90 px-3 backdrop-blur-md lg:px-5">
+    <main className="flex h-full min-h-0 min-w-0 flex-col bg-background">
+      <header className="z-10 flex h-12 shrink-0 items-center gap-2 border-b border-border bg-surface/90 px-3 backdrop-blur-md lg:px-5">
         <button
           type="button"
           className="icon-button lg:hidden"
@@ -162,14 +169,14 @@ export function ChatPane({ onOpenSidebar }: ChatPaneProps) {
           <h2 className="truncate text-[13px] font-semibold tracking-tight">
             {session?.title ?? (sessions.length === 0 ? 'New conversation' : 'Conversation')}
           </h2>
-          <div className="mt-0.5 flex min-h-4 items-center gap-2 text-[11px] text-muted-foreground">
+          <div className="mt-0.5 flex h-4 items-center gap-2 text-[11px] text-muted-foreground">
             {statusLabel ? (
               <span className="inline-flex items-center gap-1.5" aria-live="polite">
                 <span className="status-dot warning animate-pulse" />
-                {statusLabel}
+                <span className="truncate">{statusLabel}</span>
               </span>
             ) : (
-              <span className="hidden sm:inline">
+              <span className="hidden truncate sm:inline">
                 {knowledge?.ready
                   ? `${knowledge.episodes} episodes indexed`
                   : 'Checking knowledge base'}
@@ -202,15 +209,15 @@ export function ChatPane({ onOpenSidebar }: ChatPaneProps) {
         </div>
       </header>
 
-      {blockedReason && (
+      {blockedReason ? (
         <div
-          className="border-b border-warning/25 bg-warning/10 px-4 py-2 text-[12px] text-foreground"
+          className="shrink-0 border-b border-warning/25 bg-warning/10 px-4 py-2 text-[12px] text-foreground"
           role="status"
         >
           <span className={`status-dot ${providerStatus.className} mr-2`} />
           {blockedReason}
         </div>
-      )}
+      ) : null}
 
       <div className="relative min-h-0 flex-1 overflow-hidden">
         {showBlockingLoad ? (
@@ -231,7 +238,11 @@ export function ChatPane({ onOpenSidebar }: ChatPaneProps) {
             </div>
           </div>
         ) : (
-          <div ref={scrollRef} className="h-full overflow-y-auto scrollbar-stable">
+          <div
+            ref={scrollRef}
+            onScroll={handleScroll}
+            className="h-full min-h-0 overflow-y-auto overscroll-contain scrollbar-stable"
+          >
             <MessageList
               messages={messages}
               isStreaming={isStreaming}
@@ -252,15 +263,15 @@ export function ChatPane({ onOpenSidebar }: ChatPaneProps) {
         />
       </div>
 
-      <Composer
-        sendBlocked={isCreating || !!blockedReason}
-        blockedReason={
-          isCreating ? 'Creating chat…' : blockedReason
-        }
-        isStreaming={isStreaming}
-        onSend={handleSend}
-        onStop={stop}
-      />
+      <div className="shrink-0">
+        <Composer
+          sendBlocked={isCreating || !!blockedReason}
+          blockedReason={isCreating ? 'Creating chat…' : blockedReason}
+          isStreaming={isStreaming}
+          onSend={handleSend}
+          onStop={stop}
+        />
+      </div>
     </main>
   );
 }

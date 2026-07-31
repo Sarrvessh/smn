@@ -6,7 +6,13 @@ import rehypeSanitize from 'rehype-sanitize';
 import { getArtifact, isMockMode } from '../../lib/api';
 import { mockApi } from '../../lib/mock';
 import { useUiStore } from '../../stores/ui';
-import { IconClose, IconCopy, IconExpand } from '../../components/Icons';
+import {
+  IconClose,
+  IconCollapse,
+  IconCopy,
+  IconDownload,
+  IconExpand,
+} from '../../components/Icons';
 
 type Tab = 'preview' | 'code';
 
@@ -32,9 +38,10 @@ function buildSandboxHtml(content: string): string {
     body {
       margin: 0;
       min-height: 100vh;
-      background: #f8f7f4;
-      color: #22201d;
+      background: #f7f7f8;
+      color: #111118;
       font-family: Inter, system-ui, sans-serif;
+      padding: 24px;
     }
   </style>
 </head>
@@ -95,14 +102,19 @@ export function ArtifactViewer() {
 
   const isHtml = artifact?.type === 'html' || artifact?.language === 'html';
 
+  const closePanel = () => {
+    setArtifactFullscreen(false);
+    setArtifactPanelOpen(false);
+  };
+
   return (
     <aside
-      className={`surface-panel flex h-full w-full flex-col border-l ${
-        artifactFullscreen ? 'fixed inset-0 z-50 border-l-0' : ''
+      className={`surface-panel flex h-full min-h-0 w-full flex-col ${
+        artifactFullscreen ? 'border-0' : 'border-l'
       }`}
       aria-label="Artifact workspace"
     >
-      <header className="flex min-h-12 items-center justify-between gap-2 border-b border-border px-4 py-2.5">
+      <header className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border px-4">
         <div className="min-w-0">
           <h2 className="truncate text-[13px] font-semibold tracking-tight">
             {artifact?.title ?? 'Artifact workspace'}
@@ -111,6 +123,7 @@ export function ArtifactViewer() {
             {artifact
               ? `${artifact.type} / ${artifact.language}`
               : 'Preview generated work beside the chat'}
+            {artifactFullscreen ? ' · Fullscreen' : ''}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-0.5">
@@ -132,7 +145,7 @@ export function ArtifactViewer() {
             aria-label="Download artifact"
             title="Download"
           >
-            <IconCopy className="opacity-70" />
+            <IconDownload />
           </button>
           <button
             type="button"
@@ -142,12 +155,12 @@ export function ArtifactViewer() {
             aria-label={artifactFullscreen ? 'Exit fullscreen' : 'Fullscreen artifact'}
             title={artifactFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
           >
-            <IconExpand />
+            {artifactFullscreen ? <IconCollapse /> : <IconExpand />}
           </button>
           <button
             type="button"
             className="icon-button"
-            onClick={() => setArtifactPanelOpen(false)}
+            onClick={closePanel}
             aria-label="Close artifact workspace"
             title="Close"
           >
@@ -156,14 +169,18 @@ export function ArtifactViewer() {
         </div>
       </header>
 
-      <div className="flex border-b border-border px-4" role="tablist" aria-label="Artifact view">
+      <div
+        className="flex h-10 shrink-0 items-center border-b border-border px-4"
+        role="tablist"
+        aria-label="Artifact view"
+      >
         {(['preview', 'code'] as Tab[]).map((t) => (
           <button
             key={t}
             type="button"
             role="tab"
             aria-selected={tab === t}
-            className="segmented-button rounded-none border-b-2 border-transparent px-3 py-3 capitalize aria-selected:border-accent aria-selected:bg-transparent aria-selected:shadow-none"
+            className="segmented-button rounded-none border-b-2 border-transparent px-3 py-2 capitalize aria-selected:border-accent aria-selected:bg-transparent aria-selected:shadow-none"
             onClick={() => setTab(t)}
           >
             {t}
@@ -201,7 +218,7 @@ export function ArtifactViewer() {
         )}
 
         {artifact && tab === 'code' && (
-          <pre className="min-h-full overflow-auto rounded-lg border border-border bg-foreground p-0 font-mono text-xs leading-6 text-background dark:bg-black/40 dark:text-foreground">
+          <pre className="h-full min-h-0 overflow-auto rounded-lg border border-border bg-foreground p-0 font-mono text-xs leading-6 text-background dark:bg-black/40 dark:text-foreground">
             <code className="block min-w-max py-3">
               {codeLines.map(({ number, line }) => (
                 <span key={number} className="grid grid-cols-[3.5rem_minmax(0,1fr)]">
@@ -216,17 +233,17 @@ export function ArtifactViewer() {
         )}
 
         {artifact && tab === 'preview' && (
-          <>
+          <div className="flex h-full min-h-0 flex-col">
             {isHtml ? (
               <iframe
                 title={artifact.title}
                 sandbox=""
                 referrerPolicy="no-referrer"
                 srcDoc={buildSandboxHtml(artifact.content)}
-                className="h-full min-h-[32rem] w-full rounded-lg border border-border bg-white"
+                className="h-full min-h-0 w-full flex-1 rounded-lg border border-border bg-white"
               />
             ) : (
-              <article className="markdown-body mx-auto min-h-full max-w-3xl rounded-xl border border-border bg-surface-elevated px-5 py-6 sm:px-8">
+              <article className="markdown-body mx-auto w-full max-w-3xl flex-1 rounded-xl border border-border bg-surface-elevated px-5 py-6 sm:px-8">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   rehypePlugins={[rehypeSanitize]}
@@ -235,7 +252,7 @@ export function ArtifactViewer() {
                 </ReactMarkdown>
               </article>
             )}
-          </>
+          </div>
         )}
       </div>
     </aside>

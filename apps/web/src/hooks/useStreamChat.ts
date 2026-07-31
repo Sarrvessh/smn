@@ -75,6 +75,7 @@ export function useStreamChat() {
         error_code: null,
         created_at: new Date().toISOString(),
         sources: [],
+        artifact_id: null,
       };
 
       const assistantId = crypto.randomUUID();
@@ -91,6 +92,7 @@ export function useStreamChat() {
         error_code: null,
         created_at: new Date().toISOString(),
         sources: [],
+        artifact_id: null,
       };
 
       queryClient.setQueryData<Message[]>(messagesKey(sessionId), (prev) => [
@@ -99,13 +101,9 @@ export function useStreamChat() {
         assistantMessage,
       ]);
 
-      // Keep composer focused / in view after retry
+      // Keep composer focused without scrolling the page (prevents layout jump)
       requestAnimationFrame(() => {
         document.getElementById('composer-input')?.focus({ preventScroll: true });
-        document.getElementById('composer-dock')?.scrollIntoView({
-          block: 'end',
-          behavior: 'smooth',
-        });
       });
 
       if (isMockMode()) {
@@ -158,19 +156,21 @@ export function useStreamChat() {
           });
           openArtifact(artifactId);
         }
+        const mockSkill = isEssay
+          ? 'ship30_essay'
+          : isArtifact
+            ? 'artifact_generator'
+            : 'transcript_qa';
         queryClient.setQueryData<Message[]>(messagesKey(sessionId), (prev) =>
           (prev ?? []).map((m) =>
             m.id === assistantId
               ? {
                   ...m,
                   status: 'completed',
-                  skill: isEssay
-                    ? 'ship30_essay'
-                    : isArtifact
-                      ? 'artifact_generator'
-                      : 'transcript_qa',
+                  skill: mockSkill,
                   latency_ms: 1200,
                   sources: mockSources,
+                  artifact_id: isEssay || isArtifact ? artifactId : null,
                 }
               : m,
           ),
@@ -180,9 +180,10 @@ export function useStreamChat() {
           ...assistantMessage,
           content: text,
           status: 'completed',
-          skill: 'transcript_qa',
+          skill: mockSkill,
           latency_ms: 1200,
           sources: mockSources,
+          artifact_id: isEssay || isArtifact ? artifactId : null,
         });
         void queryClient.invalidateQueries({ queryKey: ['sessions'] });
         setIsStreaming(false);
@@ -283,6 +284,15 @@ export function useStreamChat() {
             case 'artifact':
               flushTokens(resolvedAssistantId);
               openArtifact(event.artifact_id);
+              queryClient.setQueryData<Message[]>(
+                messagesKey(sessionId),
+                (prev) =>
+                  (prev ?? []).map((m) =>
+                    m.id === resolvedAssistantId
+                      ? { ...m, artifact_id: event.artifact_id }
+                      : m,
+                  ),
+              );
               break;
             case 'completed':
               flushTokens(resolvedAssistantId);

@@ -5,7 +5,12 @@ import remarkGfm from 'remark-gfm';
 import type { Message, Source, StreamSource } from '../../types/api';
 import { SUGGESTED_PROMPTS } from '../../types/api';
 import { useUiStore } from '../../stores/ui';
-import { IconCopy, IconRetry, IconSources } from '../../components/Icons';
+import {
+  IconCopy,
+  IconPanel,
+  IconRetry,
+  IconSources,
+} from '../../components/Icons';
 
 interface MessageListProps {
   messages: Message[];
@@ -105,8 +110,10 @@ function MessageActions({
   onOpenSources: (sources?: Source[]) => void;
   onRetry: (content: string) => void;
 }) {
+  const openArtifact = useUiStore((s) => s.openArtifact);
   const [copied, setCopied] = useState(false);
   const hasSources = message.sources.length > 0;
+  const artifactId = message.artifact_id ?? null;
   const canRetry =
     message.role === 'assistant' &&
     !!previousUserContent &&
@@ -115,40 +122,52 @@ function MessageActions({
       message.status === 'cancelled');
 
   return (
-    <div className="mt-2 flex flex-wrap items-center gap-0.5 opacity-100 transition sm:opacity-0 sm:group-hover/message:opacity-100 sm:group-focus-within/message:opacity-100">
-      <button
-        type="button"
-        className="btn-ghost gap-1"
-        onClick={() =>
-          copyText(message.content, () => {
-            setCopied(true);
-            setTimeout(() => setCopied(false), 1600);
-          })
-        }
-      >
-        <IconCopy className="h-3.5 w-3.5" />
-        {copied ? 'Copied' : 'Copy'}
-      </button>
-      {canRetry && (
+    <div className="mt-2 flex flex-wrap items-center gap-0.5">
+      {artifactId && (
+        <button
+          type="button"
+          className="btn-secondary gap-1"
+          onClick={() => openArtifact(artifactId)}
+        >
+          <IconPanel className="h-3.5 w-3.5" />
+          Open artifact
+        </button>
+      )}
+      <div className="flex flex-wrap items-center gap-0.5 opacity-100 transition sm:opacity-0 sm:group-hover/message:opacity-100 sm:group-focus-within/message:opacity-100">
         <button
           type="button"
           className="btn-ghost gap-1"
-          onClick={() => onRetry(previousUserContent)}
+          onClick={() =>
+            copyText(message.content, () => {
+              setCopied(true);
+              setTimeout(() => setCopied(false), 1600);
+            })
+          }
         >
-          <IconRetry className="h-3.5 w-3.5" />
-          Retry
+          <IconCopy className="h-3.5 w-3.5" />
+          {copied ? 'Copied' : 'Copy'}
         </button>
-      )}
-      {hasSources && (
-        <button
-          type="button"
-          className="btn-ghost gap-1"
-          onClick={() => onOpenSources(message.sources)}
-        >
-          <IconSources className="h-3.5 w-3.5" />
-          Sources ({message.sources.length})
-        </button>
-      )}
+        {canRetry && (
+          <button
+            type="button"
+            className="btn-ghost gap-1"
+            onClick={() => onRetry(previousUserContent)}
+          >
+            <IconRetry className="h-3.5 w-3.5" />
+            Retry
+          </button>
+        )}
+        {hasSources && (
+          <button
+            type="button"
+            className="btn-ghost gap-1"
+            onClick={() => onOpenSources(message.sources)}
+          >
+            <IconSources className="h-3.5 w-3.5" />
+            Sources ({message.sources.length})
+          </button>
+        )}
+      </div>
     </div>
   );
 }

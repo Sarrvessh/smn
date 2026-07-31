@@ -22,7 +22,7 @@
 | Prompt injection via transcripts | Passages treated as untrusted data; system prompts instruct ignore-as-instructions |
 | XSS via HTML artifacts | Sandboxed iframe (`sandbox=""`), CSP meta, strip scripts/handlers, no `dangerouslySetInnerHTML` |
 | Markdown XSS | `rehype-sanitize` |
-| Session hijack / IDOR | Owner-scoped queries via `X-User-Id`; no cross-user session access |
+| Session hijack / IDOR | Shared local workspace — all clients see the same sessions; treat as single-user deploy |
 | Citation hallucination | Post-generation citation validation; invalid `[S#]` stripped |
 | Oversized payloads | `MAX_USER_MESSAGE_CHARACTERS`, `MAX_ARTIFACT_CHARACTERS` |
 | Provider abuse / hang | Timeouts, retries=1, clear error codes |
@@ -31,7 +31,7 @@
 
 ## Non-goals (accepted risk for v1)
 
-- No OAuth; anonymous UUID can be spoofed by anyone who knows it
+- No OAuth; shared workspace is intentionally open for local single-tenant use
 - No rate limiting beyond request size caps
 - Local Ollama trust model assumes localhost attacker is out of scope
 

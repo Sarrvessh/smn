@@ -45,7 +45,7 @@ Query embed → vector top-20 + FTS top-20 → reciprocal-rank fusion (k=60) →
 - Anthropic keys never reach the browser.
 - Generated HTML rendered only in `iframe sandbox=""` with restrictive CSP.
 - Markdown sanitized with `rehype-sanitize`.
-- Session routes owner-scoped by anonymous `user_id`.
+- Session routes scoped to a single shared workspace user (no per-browser anonymous identity).
 - Request size limits on messages and artifacts.
 
 ## Deployment

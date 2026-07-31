@@ -159,6 +159,37 @@ export function IconCopy(props: IconProps) {
   });
 }
 
+export function IconDownload(props: IconProps) {
+  return base({
+    ...props,
+    children: (
+      <>
+        <path d="M12 4v11" />
+        <path d="M7 11l5 5 5-5" />
+        <path d="M5 19h14" />
+      </>
+    ),
+  });
+}
+
+export function IconCollapse(props: IconProps) {
+  return base({
+    ...props,
+    children: (
+      <>
+        <path d="M9 9L5 5" />
+        <path d="M5 9V5h4" />
+        <path d="M15 9l4-4" />
+        <path d="M19 9V5h-4" />
+        <path d="M9 15l-4 4" />
+        <path d="M5 15v4h4" />
+        <path d="M15 15l4 4" />
+        <path d="M19 15v4h-4" />
+      </>
+    ),
+  });
+}
+
 export function IconRetry(props: IconProps) {
   return base({
     ...props,

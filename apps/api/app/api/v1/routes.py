@@ -3,14 +3,13 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, Header, Response
+from fastapi import APIRouter, Depends, Response
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.errors import AppError
-from app.db.models import ChatSession, Message, MessageSource, TranscriptChunk, User
+from app.db.models import Artifact, ChatSession, Message, MessageSource, TranscriptChunk, User
 from app.db.session import get_db
 from app.ingestion.pipeline import knowledge_status
 from app.llm.registry import registry
@@ -18,22 +17,31 @@ from app.services.conversation import get_owned_session
 
 router = APIRouter()
 
+# Single shared workspace identity — all clients share sessions (no per-browser user).
+SHARED_WORKSPACE_USER_ID = UUID("00000000-0000-4000-8000-000000000001")
 
-async def require_user(
-    x_user_id: str | None = Header(default=None, alias="X-User-Id"),
-    db: AsyncSession = Depends(get_db),
-) -> User:
-    if not x_user_id:
-        raise AppError("UNAUTHORIZED", "Missing X-User-Id header.", retryable=False, status_code=401)
-    try:
-        uid = UUID(x_user_id)
-    except ValueError as exc:
-        raise AppError("UNAUTHORIZED", "Invalid X-User-Id.", retryable=False, status_code=401) from exc
-    user = (await db.execute(select(User).where(User.id == uid))).scalar_one_or_none()
-    if not user:
-        raise AppError("UNAUTHORIZED", "Unknown user.", retryable=False, status_code=401)
+
+async def require_user(db: AsyncSession = Depends(get_db)) -> User:
+    """Resolve the shared workspace user. X-User-Id is ignored."""
+    user = (
+        await db.execute(select(User).where(User.id == SHARED_WORKSPACE_USER_ID))
+    ).scalar_one_or_none()
+    if user is None:
+        user = User(
+            id=SHARED_WORKSPACE_USER_ID,
+            metadata_={"role": "shared_workspace"},
+        )
+        db.add(user)
+        await db.flush()
+        # Fold any legacy per-browser sessions into the shared workspace
+        await db.execute(
+            update(ChatSession)
+            .where(ChatSession.user_id != SHARED_WORKSPACE_USER_ID)
+            .values(user_id=SHARED_WORKSPACE_USER_ID)
+        )
     user.last_seen_at = datetime.now(UTC)
     await db.commit()
+    await db.refresh(user)
     return user
 
 
@@ -44,10 +52,8 @@ class AnonymousUserOut(BaseModel):
 
 @router.post("/users/anonymous", response_model=AnonymousUserOut, status_code=201)
 async def create_anonymous_user(db: AsyncSession = Depends(get_db)) -> AnonymousUserOut:
-    user = User(id=uuid4())
-    db.add(user)
-    await db.commit()
-    await db.refresh(user)
+    """Deprecated: returns the shared workspace user for backward compatibility."""
+    user = await require_user(db)
     return AnonymousUserOut(id=user.id, created_at=user.created_at)
 
 
@@ -210,6 +216,7 @@ class MessageOut(BaseModel):
     error_code: str | None = None
     created_at: datetime
     sources: list[SourceOut] = Field(default_factory=list)
+    artifact_id: UUID | None = None
 
 
 @router.get("/sessions/{session_id}/messages", response_model=list[MessageOut])
@@ -231,6 +238,18 @@ async def list_messages(
             .order_by(Message.created_at.asc())
         )
     ).scalars().all()
+    artifact_by_message: dict[UUID, UUID] = {}
+    if rows:
+        arts = (
+            await db.execute(
+                select(Artifact.message_id, Artifact.id).where(
+                    Artifact.message_id.in_([m.id for m in rows])
+                )
+            )
+        ).all()
+        for message_id, artifact_id in arts:
+            # Prefer the first artifact if multiple exist for a message
+            artifact_by_message.setdefault(message_id, artifact_id)
     out: list[MessageOut] = []
     for m in rows:
         sources: list[SourceOut] = []
@@ -260,6 +279,7 @@ async def list_messages(
                 error_code=m.error_code,
                 created_at=m.created_at,
                 sources=sources,
+                artifact_id=artifact_by_message.get(m.id),
             )
         )
     return out

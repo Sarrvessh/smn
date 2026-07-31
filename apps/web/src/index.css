@@ -57,7 +57,7 @@
   }
 
   #root {
-    @apply min-h-screen;
+    @apply h-[100dvh] overflow-hidden;
   }
 
   ::selection {
@@ -75,8 +75,12 @@
   }
 
   .workspace-grid {
-    @apply grid h-full min-h-0 grid-cols-1 lg:grid-cols-[16.5rem_minmax(0,1fr)_22rem];
+    @apply grid h-full min-h-0 grid-cols-1 overflow-hidden lg:grid-cols-[16.5rem_minmax(0,1fr)_22rem];
     transition: grid-template-columns 220ms var(--ease-out);
+  }
+
+  .workspace-grid > * {
+    @apply min-h-0;
   }
 
   .workspace-grid.sidebar-collapsed {

@@ -7,7 +7,7 @@ import {
   updateSession,
 } from '../lib/api';
 import { mockApi } from '../lib/mock';
-import type { SessionCreate, SessionUpdate } from '../types/api';
+import type { Session, SessionCreate, SessionUpdate } from '../types/api';
 import { useUiStore } from '../stores/ui';
 
 const SESSIONS_KEY = ['sessions'] as const;
@@ -28,8 +28,14 @@ export function useSessions(enabled = true) {
     mutationFn: (body: SessionCreate = {}) =>
       isMockMode() ? mockApi.createSession(body) : createSession(body),
     onSuccess: (session) => {
-      void queryClient.invalidateQueries({ queryKey: SESSIONS_KEY });
+      // Optimistically insert so the main pane switches immediately
+      queryClient.setQueryData<Session[]>(SESSIONS_KEY, (prev) => {
+        const list = prev ?? [];
+        if (list.some((s) => s.id === session.id)) return list;
+        return [session, ...list];
+      });
       setSelectedSessionId(session.id);
+      void queryClient.invalidateQueries({ queryKey: SESSIONS_KEY });
     },
   });
 

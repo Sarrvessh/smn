@@ -15,19 +15,21 @@ All error responses:
 }
 ```
 
-## Anonymous user
+## Shared workspace (no per-browser user)
+
+The API uses a single shared workspace identity for all clients. Sessions are visible to everyone using the local deployment.
+
+`X-User-Id` is **not required**.
 
 ### `POST /users/anonymous`
 
-Creates an anonymous user. Client stores `id` in localStorage.
+Deprecated compatibility endpoint. Returns the shared workspace user id.
 
 Response `201`:
 
 ```json
-{ "id": "uuid", "created_at": "ISO-8601" }
+{ "id": "00000000-0000-4000-8000-000000000001", "created_at": "ISO-8601" }
 ```
-
-Header for authenticated routes: `X-User-Id: <uuid>`
 
 ## Sessions
 
@@ -57,7 +59,26 @@ Soft-archives the session (`archived_at` set).
 
 ### `GET /sessions/{session_id}/messages`
 
-Returns messages with embedded sources when present.
+Returns messages with embedded sources when present. Assistant turns that produced an artifact include `artifact_id` so the client can reopen them later.
+
+```json
+{
+  "id": "uuid",
+  "role": "assistant",
+  "content": "...",
+  "status": "completed",
+  "skill": "ship30_essay",
+  "provider": "ollama",
+  "model": "qwen2.5:7b",
+  "latency_ms": 1200,
+  "error_code": null,
+  "created_at": "ISO-8601",
+  "sources": [],
+  "artifact_id": "uuid"
+}
+```
+
+`artifact_id` is `null` when the message has no linked artifact.
 
 ### `POST /sessions/{session_id}/messages/stream`
 

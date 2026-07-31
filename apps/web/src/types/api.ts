@@ -65,6 +65,8 @@ export interface Message {
   error_code: string | null;
   created_at: string;
   sources: Source[];
+  /** Present when this assistant turn produced an artifact (essay / HTML / MD). */
+  artifact_id?: string | null;
 }
 
 export interface StreamRequest {
