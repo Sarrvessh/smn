@@ -7,7 +7,7 @@
 | Frontend | React, TypeScript, Vite, Tailwind, Radix/shadcn, TanStack Query, Zustand |
 | Backend | Python 3.12, FastAPI, Pydantic Settings, SQLAlchemy 2 async, Alembic |
 | Database | PostgreSQL + pgvector |
-| LLMs | Ollama (local) + Anthropic Claude |
+| LLMs | Ollama (local) + Anthropic Claude + OpenRouter (optional cloud chat) |
 | Embeddings | Ollama `embeddinggemma` (separate from chat provider) |
 
 ## Component diagram
@@ -23,7 +23,7 @@ Conversation Service → Skill Router
   transcript_qa | ship30_essay | artifact_generator
         │                    │
 Retrieval Service      Provider Registry
-  vector + FTS + RRF    Ollama | Anthropic
+  vector + FTS + RRF    Ollama | Anthropic | OpenRouter
         │
 PostgreSQL + pgvector
   users, sessions, messages, episodes, chunks, sources, artifacts, agent_runs
@@ -42,8 +42,8 @@ Deterministic retrieval planner → optional guest/slug/title/catalog-ordinal sc
 
 ## Security boundaries
 
-- Anthropic keys never reach the browser.
-- Generated HTML rendered only in `iframe sandbox=""` with restrictive CSP.
+- Anthropic / OpenRouter API keys never reach the browser.
+- Generated HTML rendered only in `iframe sandbox=""` with restrictive CSP. Visuals use inline SVG + CSS only (no JS, no remote images).
 - Markdown sanitized with `rehype-sanitize`.
 - Session routes scoped to a single shared workspace user (no per-browser anonymous identity).
 - Request size limits on messages and artifacts.

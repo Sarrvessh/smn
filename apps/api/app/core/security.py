@@ -7,8 +7,14 @@ EVENT_HANDLER_RE = re.compile(r"\son\w+\s*=", re.IGNORECASE)
 JS_URL_RE = re.compile(r"javascript:", re.IGNORECASE)
 IFRAME_RE = re.compile(r"<iframe\b", re.IGNORECASE)
 OBJECT_RE = re.compile(r"<(object|embed|form)\b", re.IGNORECASE)
+FOREIGN_OBJECT_RE = re.compile(r"<foreignObject\b", re.IGNORECASE)
 EXTERNAL_SRC_RE = re.compile(
     r"""<(script|link|iframe)\b[^>]*(src|href)\s*=\s*['"]https?://""",
+    re.IGNORECASE,
+)
+# Remote images/fonts break the offline sandbox; allow only data: URIs.
+EXTERNAL_MEDIA_RE = re.compile(
+    r"""<(?:img|image|source)\b[^>]*(?:src|href|xlink:href)\s*=\s*['"]https?://""",
     re.IGNORECASE,
 )
 
@@ -22,13 +28,16 @@ CSP_META = (
 
 
 def sanitize_html_artifact(content: str) -> str:
+    """Allow inline SVG/CSS visuals; reject scripts and remote media."""
     if (
         SCRIPT_RE.search(content)
         or EVENT_HANDLER_RE.search(content)
         or JS_URL_RE.search(content)
         or IFRAME_RE.search(content)
         or OBJECT_RE.search(content)
+        or FOREIGN_OBJECT_RE.search(content)
         or EXTERNAL_SRC_RE.search(content)
+        or EXTERNAL_MEDIA_RE.search(content)
     ):
         raise ValueError("HTML artifact contains forbidden elements")
 

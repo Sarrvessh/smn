@@ -7,7 +7,7 @@ Generated during implementation.
 - [x] New Chat / sessions API + UI
 - [x] Sessions persist in PostgreSQL
 - [x] Owner-scoped session access
-- [x] Ollama + Anthropic providers
+- [x] Ollama + Anthropic + OpenRouter providers
 - [x] Provider/model per session
 - [x] Transcript ingest (ChatPRD corpus)
 - [x] Hybrid retrieval + query CLI

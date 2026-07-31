@@ -1,7 +1,14 @@
 # Ship30 Essay Skill
 
-Generate a Ship30for30-style essay (~1100–1400 words) grounded in transcript evidence. Open as a Markdown artifact.
+Generate a Ship30for30-style Markdown essay (~1100–1400 words) grounded in Lenny’s Podcast transcript evidence. Opened as a Markdown artifact in Signal.
 
-## Required
+## Required craft
 
-Strong hook, short paragraphs, headings, bullets, bold emphasis, practical takeaway, transcript-backed sources.
+- Specific reader + one atomic idea
+- Strong hook in the first 2–3 sentences
+- Short paragraphs, clear H2/H3 headings, bullets for frameworks, sparing bold
+- Practical framework + next-7-days actions
+- Final takeaway + Sources with `[S#]` citations
+- Evidence-only claims (no invented guests/episodes/quotes)
+
+See `prompt.md`, `style-guide.md`, `rubric.json`, and `output.schema.json`.

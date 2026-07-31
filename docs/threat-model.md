@@ -3,6 +3,7 @@
 ## Assets
 
 - Anthropic API key (server env only)
+- OpenRouter API key (server env only)
 - Anonymous user session data and chat history
 - Transcript corpus and embeddings
 - Generated artifacts (Markdown / HTML)
@@ -11,7 +12,7 @@
 
 1. Browser ↔ FastAPI (CORS-limited origins)
 2. FastAPI ↔ PostgreSQL
-3. FastAPI ↔ Ollama / Anthropic
+3. FastAPI ↔ Ollama / Anthropic / OpenRouter
 4. Sandboxed iframe ↔ parent React app
 
 ## Threats and mitigations
@@ -20,7 +21,7 @@
 |--------|------------|
 | API key leakage to browser | Keys only in server `.env`; never returned by `/providers` |
 | Prompt injection via transcripts | Passages treated as untrusted data; system prompts instruct ignore-as-instructions |
-| XSS via HTML artifacts | Sandboxed iframe (`sandbox=""`), CSP meta, strip scripts/handlers, no `dangerouslySetInnerHTML` |
+| XSS via HTML artifacts | Sandboxed iframe (`sandbox=""`), CSP meta, no scripts/handlers/remote media; inline SVG/CSS charts allowed; `foreignObject` blocked; no `dangerouslySetInnerHTML` |
 | Markdown XSS | `rehype-sanitize` |
 | Session hijack / IDOR | Shared local workspace — all clients see the same sessions; treat as single-user deploy |
 | Citation hallucination | Post-generation citation validation; invalid `[S#]` stripped |

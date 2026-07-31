@@ -19,10 +19,15 @@ SHIP30_RE = re.compile(
     re.IGNORECASE,
 )
 ARTIFACT_RE = re.compile(
-    r"\b(html|markdown|artifact|dashboard|checklist|landing page|strategy canvas|playbook)\b",
+    r"\b(html|markdown|artifact|dashboard|checklist|landing page|strategy canvas|playbook|"
+    r"chart|graph|visuali[sz]e|funnel|scorecard|one[- ]pager)\b",
     re.IGNORECASE,
 )
-HTML_RE = re.compile(r"\b(html|css|dashboard|landing page)\b", re.IGNORECASE)
+HTML_RE = re.compile(
+    r"\b(html|css|dashboard|landing page|chart|graph|visuali[sz]e|funnel|scorecard|"
+    r"infographic|diagram)\b",
+    re.IGNORECASE,
+)
 
 
 def route_skill(message: str, mode: str = "auto") -> RouteDecision:

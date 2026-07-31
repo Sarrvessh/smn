@@ -28,6 +28,19 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     anthropic_model: str = "claude-sonnet-4-20250514"
 
+    # OpenRouter (OpenAI-compatible). Embeddings stay on Ollama.
+    openrouter_api_key: str = ""
+    openrouter_base_url: str = "https://openrouter.ai/api/v1"
+    openrouter_model: str = "anthropic/claude-sonnet-4"
+    openrouter_models: str = (
+        "anthropic/claude-sonnet-4,"
+        "google/gemini-2.5-flash,"
+        "openai/gpt-4o-mini,"
+        "meta-llama/llama-3.3-70b-instruct"
+    )
+    openrouter_http_referer: str = "http://localhost:5173"
+    openrouter_app_title: str = "Signal"
+
     llm_request_timeout_seconds: int = 300
     llm_max_retries: int = 1
 

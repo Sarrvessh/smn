@@ -7,6 +7,11 @@ const PREFERRED_CHAT_MODELS = [
   'llama3.1:8b',
   'mistral:7b',
   'gemma:2b',
+  'anthropic/claude-sonnet-4',
+  'google/gemini-2.5-flash',
+  'openai/gpt-4o-mini',
+  'meta-llama/llama-3.3-70b-instruct',
+  'claude-sonnet-4-20250514',
 ];
 
 export function isEmbeddingModel(name: string): boolean {

@@ -30,7 +30,7 @@ Requires Postgres with ingested chunks for retrieval hit-rate. Route accuracy ru
 ## Notes
 
 - Do not claim zero hallucinations.
-- Local chat model quality varies; Anthropic improves long-form Ship30/artifacts.
+- Local chat model quality varies; Anthropic / OpenRouter improve long-form Ship30/artifacts.
 - For smoke ingest without an Ollama embed model, set `OLLAMA_EMBED_MODEL=hash` (deterministic vectors). Prefer `embeddinggemma` or `nomic-embed-text` for production-quality retrieval.
 - Automated `evaluate_rag` still checks route + “got some chunks” only. Guest scoping, comparison coverage, and true abstention need manual or LLM-judge review after planner changes.
 - Episode “number N” resolves to the Nth episode by `publish_date` (not ingest counter). Out-of-range numbers should abstain.

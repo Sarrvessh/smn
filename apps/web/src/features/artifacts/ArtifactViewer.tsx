@@ -20,11 +20,13 @@ function buildSandboxHtml(content: string): string {
   const csp = [
     "default-src 'none'",
     "style-src 'unsafe-inline'",
-    "img-src data: https:",
-    "font-src data: https:",
+    "img-src data:",
+    "font-src data:",
     "base-uri 'none'",
     "form-action 'none'",
     "script-src 'none'",
+    "frame-src 'none'",
+    "object-src 'none'",
   ].join('; ');
 
   return `<!doctype html>

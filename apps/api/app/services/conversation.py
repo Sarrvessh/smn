@@ -19,6 +19,7 @@ from app.core.security import validate_artifact_content
 from app.db.models import AgentRun, Artifact, ChatSession, Message, MessageSource
 from app.ingestion.pipeline import knowledge_status
 from app.llm.base import ChatMessage
+from app.llm.registry import default_chat_model
 from app.retrieval.citations import validate_citations
 from app.retrieval.hybrid_search import hybrid_retrieve, should_abstain, to_source_payload
 
@@ -68,9 +69,9 @@ async def stream_message(
     started = time.time()
     chat = await get_owned_session(db, session_id, user_id)
     provider_name = provider or chat.provider or settings.default_llm_provider
-    model_name = model or chat.model or settings.ollama_chat_model
+    model_name = model or chat.model or default_chat_model(provider_name, settings)
     if _is_embedding_model(model_name):
-        model_name = settings.ollama_chat_model
+        model_name = default_chat_model(provider_name, settings)
     chat.provider = provider_name
     chat.model = model_name
     chat.updated_at = datetime.now(UTC)
@@ -118,7 +119,8 @@ async def stream_message(
         if _is_embedding_model(model):
             raise AppError(
                 OLLAMA_MODEL_MISSING,
-                f"'{model}' is an embedding model. Choose a chat model like {settings.ollama_chat_model}.",
+                f"'{model}' is an embedding model. Choose a chat model like "
+                f"{default_chat_model(provider_name, settings)}.",
                 retryable=False,
                 status_code=400,
             )
@@ -292,7 +294,8 @@ async def stream_message(
         if not cleaned.strip():
             cleaned = (
                 "The model returned an empty answer. "
-                f"Confirm the chat model is installed (e.g. ollama pull {settings.ollama_chat_model}) and retry."
+                f"Confirm the selected {provider_name} chat model is available "
+                f"(e.g. {default_chat_model(provider_name, settings)}) and retry."
             )
             yield ndjson("token", text=cleaned)
 

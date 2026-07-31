@@ -24,6 +24,36 @@ def _read_prompt(skill_dir: str, name: str = "prompt.md") -> str:
     return ""
 
 
+def _extract_md_title(text: str) -> str | None:
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("# "):
+            title = stripped[2:].strip()
+            return title or None
+    return None
+
+
+def _extract_html_title(text: str) -> str | None:
+    lower = text.lower()
+    for tag in ("<h1", "<title"):
+        start = lower.find(tag)
+        if start < 0:
+            continue
+        gt = text.find(">", start)
+        if gt < 0:
+            continue
+        end_tag = "</h1>" if tag == "<h1" else "</title>"
+        end = lower.find(end_tag, gt)
+        if end < 0:
+            continue
+        title = text[gt + 1 : end].strip()
+        # Strip simple nested tags if any
+        if "<" in title:
+            continue
+        return title or None
+    return None
+
+
 async def run_transcript_qa(
     question: str,
     chunks: list[RetrievedChunk],
@@ -44,7 +74,12 @@ async def run_transcript_qa(
         *history[-10:],
         ChatMessage(
             role="user",
-            content=f"Question:\n{question}\n\nEvidence:\n{evidence}",
+            content=(
+                f"Question:\n{question}\n\n"
+                f"Evidence:\n{evidence}\n\n"
+                "Answer using only this Evidence. Cite claims with [S#]. "
+                "If Evidence is insufficient, abstain with the exact abstain sentence."
+            ),
         ),
     ]
     llm = registry.get_llm(provider)
@@ -80,15 +115,18 @@ async def iter_transcript_qa(
         ChatMessage(
             role="user",
             content=(
-                f"Question:\n{question}\n\nEvidence:\n{evidence}\n\n"
-                "Write a well-structured Markdown answer with these exact headings "
-                "on their own lines:\n"
+                f"Question:\n{question}\n\n"
+                f"Evidence:\n{evidence}\n\n"
+                "Follow the system output contract exactly.\n"
+                "Use only this Evidence. Cite with [S#]. "
+                "If Evidence cannot support the question (including a missing requested guest/episode), "
+                "abstain with the exact abstain sentence and nothing else.\n\n"
+                "Required Markdown headings (each on its own line, blank line after each heading):\n"
                 "### Direct answer\n"
                 "### Key insights\n"
                 "### Practical recommendation\n"
                 "### Sources\n\n"
-                "Use blank lines between sections. Use a bullet list under Key insights. "
-                "Cite sources as [S1], [S2], etc."
+                "Key insights must be a bullet list. Sources must list only cited [S#] rows."
             ),
         ),
     ]
@@ -120,21 +158,26 @@ async def run_ship30(
     messages = [
         ChatMessage(role="system", content=system),
         *history[-8:],
-        ChatMessage(role="user", content=f"Request:\n{question}\n\nEvidence:\n{evidence}"),
+        ChatMessage(
+            role="user",
+            content=(
+                f"Request:\n{question}\n\n"
+                f"Evidence:\n{evidence}\n\n"
+                "Write a Ship30for30 Markdown essay for one specific reader, grounded only in Evidence. "
+                "Cite with [S#]. Target ~1100–1400 words.\n\n"
+                "Required H2 sections in order after the H1 title:\n"
+                "The hook; The problem; Why common advice fails; What the evidence shows; "
+                "A practical framework; What to do next; The takeaway; Sources.\n\n"
+                "Respond with the essay Markdown only. Start with a clear H1 title. "
+                "No preamble, no JSON, no code fence around the essay."
+            ),
+        ),
     ]
     llm = registry.get_llm(provider)
     # Prefer plain generation for local models; structured JSON is unreliable on small LLMs.
     try:
         gen = await llm.generate(
-            messages
-            + [
-                ChatMessage(
-                    role="user",
-                    content=(
-                        "Respond with the essay markdown only. Start with a clear H1 title."
-                    ),
-                )
-            ],
+            messages,
             GenerationOptions(model=model, temperature=0.4, max_tokens=8192),
         )
         words = gen.text.split()
@@ -168,14 +211,32 @@ async def run_artifact(
     evidence = format_evidence(chunks) if chunks else ""
     want_html = (artifact_type or "markdown") == "html"
     system = _read_prompt("artifact")
+    type_label = "html" if want_html else "markdown"
+    body_rules = (
+        "Return ONLY a complete HTML5 document with inline <style> CSS. "
+        "No scripts, event handlers, forms, iframes, foreignObject, or external CSS/JS/fonts/images. "
+        "REQUIRED: include at least two visual elements using inline SVG and/or CSS charts "
+        "(KPI metric cards, bar chart, line/area chart, donut, or funnel diagram). "
+        "Label charts; if numbers are illustrative, caption them as a working template. "
+        "Include a real <h1>, useful sections, and a Sources section if Evidence was used. "
+        "No markdown fences, no commentary before/after the HTML."
+        if want_html
+        else "Return ONLY Markdown (raw document body). "
+        "Start with an H1 title, clear ## sections, at least one checklist or numbered plan, "
+        "and include a table or ASCII chart when comparing magnitudes. "
+        "Add ## Sources with [S#] when Evidence was used. "
+        "No preamble, no JSON, no wrapping code fence."
+    )
     messages = [
         ChatMessage(role="system", content=system),
         *history[-8:],
         ChatMessage(
             role="user",
             content=(
-                f"Request:\n{question}\n\nPreferred type: {'html' if want_html else 'markdown'}\n\n"
-                f"Evidence:\n{evidence}"
+                f"Request:\n{question}\n\n"
+                f"Preferred type: {type_label}\n\n"
+                f"Evidence:\n{evidence or '(none retrieved — do not invent transcript attributions)'}\n\n"
+                f"{body_rules}"
             ),
         ),
     ]
@@ -183,47 +244,58 @@ async def run_artifact(
     # Prefer plain generation; wrap into ArtifactResult locally.
     try:
         gen = await llm.generate(
-            messages
-            + [
-                ChatMessage(
-                    role="user",
-                    content=(
-                        "Return only the artifact body. "
-                        + (
-                            "Use a complete HTML document with inline CSS and no scripts."
-                            if want_html
-                            else "Use Markdown."
-                        )
-                    ),
-                )
-            ],
+            messages,
             GenerationOptions(model=model, temperature=0.3, max_tokens=8192),
         )
         if want_html:
-            content = gen.text
+            content = gen.text.strip()
+            # Strip accidental markdown fences around HTML
+            if content.startswith("```"):
+                content = content.strip("`")
+                if content.lower().startswith("html"):
+                    content = content[4:].lstrip()
+                if content.endswith("```"):
+                    content = content[:-3].rstrip()
             if "<html" not in content.lower():
                 content = (
-                    "<!DOCTYPE html><html><head><style>"
-                    "body{font-family:system-ui;padding:2rem;background:#f7f4ef;color:#1a1a1a}"
-                    "h1{font-size:1.6rem} .card{margin:1rem 0;padding:1rem;border:1px solid #ddd}"
+                    "<!DOCTYPE html><html lang='en'><head><meta charset='UTF-8' />"
+                    "<meta name='viewport' content='width=device-width, initial-scale=1' />"
+                    "<title>Growth Artifact</title><style>"
+                    "body{font-family:system-ui,sans-serif;padding:2rem;background:#f7f7f8;color:#111118;"
+                    "line-height:1.5;max-width:960px;margin:0 auto}"
+                    "h1{font-size:1.6rem;margin:0 0 .5rem}.card{margin:1rem 0;padding:1rem;"
+                    "border:1px solid #e4e4e7;border-radius:12px;background:#fff}"
                     "</style></head><body>"
                     f"<h1>Growth Artifact</h1><div class='card'>{gen.text}</div></body></html>"
                 )
+            title = _extract_html_title(content) or "Generated HTML Artifact"
             return ArtifactResult(
-                title="Generated HTML Artifact",
+                title=title[:120],
                 artifact_type="html",
                 language="html",
                 content=content,
                 source_ids=[c.citation_label for c in chunks],
-                summary="HTML artifact",
+                summary="HTML artifact grounded in transcript evidence"
+                if chunks
+                else "HTML artifact",
             )
+        md = gen.text.strip()
+        if md.startswith("```"):
+            md = md.strip("`")
+            if md.lower().startswith("markdown"):
+                md = md[8:].lstrip()
+            elif md.lower().startswith("md"):
+                md = md[2:].lstrip()
+        title = _extract_md_title(md) or "Generated Markdown Artifact"
         return ArtifactResult(
-            title="Generated Markdown Artifact",
+            title=title[:120],
             artifact_type="markdown",
             language="markdown",
-            content=gen.text,
+            content=md,
             source_ids=[c.citation_label for c in chunks],
-            summary="Markdown artifact",
+            summary="Markdown artifact grounded in transcript evidence"
+            if chunks
+            else "Markdown artifact",
         )
     except Exception:  # noqa: BLE001
         result = await llm.generate_structured(

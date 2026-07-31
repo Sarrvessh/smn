@@ -9,7 +9,8 @@ Transcript-grounded product & growth research assistant built on Lenny’s Podca
 - Validated `[S#]` citations with source cards
 - Ship30for30 essay skill → Markdown artifact
 - Markdown / HTML artifact viewer (sandboxed iframe, no JS)
-- Ollama (local) and Anthropic Claude providers
+- Ollama (local), Anthropic Claude, and OpenRouter (optional cloud chat) providers
+- Embeddings stay on Ollama (separate from the chat provider)
 
 ## Prerequisites
 
@@ -128,7 +129,19 @@ Cloned to `data/lennys-podcast-transcripts/` (gitignored).
 | Slow/unavailable embed model | Temporary smoke: `OLLAMA_EMBED_MODEL=hash` then re-ingest with `embeddinggemma` or `nomic-embed-text` |
 | Docker image pull issues | Compose defaults to `ankane/pgvector:v0.5.1`; alternate `pgvector/pgvector:pg16` if preferred |
 | Docker → Ollama | `OLLAMA_BASE_URL=http://host.docker.internal:11434` |
-| Anthropic errors | Set `ANTHROPIC_API_KEY` or switch provider to Ollama |
+| Anthropic errors | Set `ANTHROPIC_API_KEY` or switch provider to Ollama / OpenRouter |
+| OpenRouter errors | Set `OPENROUTER_API_KEY`; select `openrouter` in the header. Embeddings still need Ollama |
+| Graded production path | Leave Anthropic wired via env — grader can drop in their own `ANTHROPIC_API_KEY` |
+
+## LLM providers
+
+| Provider | When to use | Env |
+|----------|-------------|-----|
+| **Ollama** | Local demo (required) | `OLLAMA_*` |
+| **Anthropic** | Production / grader key | `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` |
+| **OpenRouter** | Optional cloud chat (Claude, Gemini, etc.) while developing | `OPENROUTER_API_KEY`, `OPENROUTER_MODEL` |
+
+Chat and embeddings are separate: even with OpenRouter or Anthropic for chat, keep Ollama (or `OLLAMA_EMBED_MODEL=hash` for smoke) for embeddings.
 
 ## Demo video
 

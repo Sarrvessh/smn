@@ -65,6 +65,37 @@ def test_html_sanitize_blocks_script():
         sanitize_html_artifact('<html><body><script>alert(1)</script></body></html>')
 
 
+def test_html_sanitize_allows_inline_svg_chart():
+    html = validate_artifact_content(
+        "html",
+        """<!DOCTYPE html><html><head><title>Scorecard</title></head><body>
+        <h1>Retention Scorecard</h1>
+        <svg viewBox="0 0 120 80" role="img" aria-label="Bar chart">
+          <title>Bar chart</title>
+          <rect x="10" y="20" width="20" height="50" fill="#4F5FE8"/>
+          <rect x="40" y="35" width="20" height="35" fill="#4F5FE8"/>
+        </svg>
+        <div class="chart"><div class="track"><i style="width:70%"></i></div></div>
+        </body></html>""",
+        100000,
+    )
+    assert "<svg" in html
+    assert "Content-Security-Policy" in html
+    assert "script-src 'none'" in html
+
+
+def test_html_sanitize_blocks_remote_image_and_foreign_object():
+    with pytest.raises(ValueError):
+        sanitize_html_artifact(
+            '<html><body><img src="https://evil.example/x.png" /></body></html>'
+        )
+    with pytest.raises(ValueError):
+        sanitize_html_artifact(
+            '<html><body><svg><foreignObject width="100" height="100">'
+            "<div>x</div></foreignObject></svg></body></html>"
+        )
+
+
 def test_html_artifact_gets_csp():
     html = validate_artifact_content(
         "html",

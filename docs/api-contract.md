@@ -140,6 +140,14 @@ Returns all artifacts for the shared workspace, newest first. List items omit `c
 
 ## Providers
 
+Chat generation providers (embeddings remain Ollama / hash and are independent of chat):
+
+| id | Env | Notes |
+|----|-----|--------|
+| `ollama` | `OLLAMA_BASE_URL`, `OLLAMA_CHAT_MODEL` | Default local path |
+| `anthropic` | `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` | Production / grader key path |
+| `openrouter` | `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`, `OPENROUTER_MODELS` | Optional cloud chat (Gemini, Claude via OpenRouter, etc.) |
+
 ### `GET /providers`
 
 ### `GET /providers/health`
@@ -158,10 +166,18 @@ Returns all artifacts for the shared workspace, newest first. List items omit `c
       "configured": false,
       "healthy": false,
       "models": []
+    },
+    {
+      "id": "openrouter",
+      "configured": true,
+      "healthy": true,
+      "models": ["anthropic/claude-sonnet-4", "google/gemini-2.5-flash"]
     }
   ]
 }
 ```
+
+Provider API keys are never returned in this response.
 
 ## Health & knowledge
 

@@ -243,6 +243,16 @@ export const mockApi = {
           healthy: false,
           models: [],
         },
+        {
+          id: 'openrouter',
+          configured: false,
+          healthy: false,
+          models: [
+            'anthropic/claude-sonnet-4',
+            'google/gemini-2.5-flash',
+            'openai/gpt-4o-mini',
+          ],
+        },
       ],
     });
   },

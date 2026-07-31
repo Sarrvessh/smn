@@ -23,7 +23,7 @@ Unlike a general-purpose chatbot, every research answer can be traced to the pod
 ## Operating Context
 
 - The primary setup is a reproducible local stack with PostgreSQL, pgvector, a Python API, and a Vite/React frontend.
-- Ollama is the default local provider; Anthropic is optional when configured.
+- Ollama is the default local provider; Anthropic and OpenRouter are optional when configured.
 - The transcript knowledge base must be ingested before grounded answers are available.
 - Sessions, messages, provider choices, citations, and artifacts persist through the backend.
 - The interface must remain useful when providers, models, the database, or the knowledge base are unavailable.
@@ -34,8 +34,8 @@ Unlike a general-purpose chatbot, every research answer can be traced to the pod
 - Ask transcript-grounded questions and receive validated `[S#]` citations.
 - Inspect guest, episode, excerpt, publication date, and source link context.
 - Generate Ship30for30-style Markdown essays.
-- Generate and preview Markdown or HTML/CSS artifacts beside the chat.
-- Switch between configured Ollama and Anthropic models.
+- Generate and preview Markdown or visual HTML/CSS artifacts (inline SVG/CSS charts) beside the chat.
+- Switch between configured Ollama, Anthropic, and OpenRouter chat models.
 - Stop streaming generation and recover from provider or persistence failures.
 
 ## Durable Constraints
@@ -43,7 +43,7 @@ Unlike a general-purpose chatbot, every research answer can be traced to the pod
 - Preserve the API, streaming, schema, and architecture contracts in `docs/`.
 - Ground transcript Q&A in retrieved evidence and abstain when evidence is insufficient.
 - Never expose raw database identifiers, embedding scores, stack traces, or secrets in the normal interface.
-- HTML artifacts must run without JavaScript in a sandboxed iframe and must not affect the parent application.
+- HTML artifacts must run without JavaScript in a sandboxed iframe (inline SVG/CSS visuals only; no remote assets) and must not affect the parent application.
 - Do not imply authentication, collaboration, uploads, billing, voice, public sharing, or artifact version history.
 - Keep the conversation as the primary visual focus across desktop, tablet, and mobile.
 

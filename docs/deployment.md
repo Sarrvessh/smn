@@ -6,7 +6,9 @@ Local evaluation is primary. Optional hosted stack:
 - API: Railway (`apps/api`)
 - Web: Vercel or Railway (`apps/web`)
 
-Set `DATABASE_URL`, `CORS_ORIGINS`, provider keys, and `OLLAMA_BASE_URL` appropriately. Hosted failure must not block local demo.
+Set `DATABASE_URL`, `CORS_ORIGINS`, provider keys (`ANTHROPIC_API_KEY` and/or `OPENROUTER_API_KEY`), and `OLLAMA_BASE_URL` appropriately. Hosted failure must not block local demo.
+
+**Provider expectation for assessment:** local demo via Ollama; production path works when an Anthropic key is supplied via env. OpenRouter is a valid alternate cloud chat provider for development and testing; embeddings remain local (Ollama).
 
 ## Demo video
 
