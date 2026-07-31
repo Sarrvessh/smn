@@ -1,0 +1,13 @@
+{
+  "projectRoots": [
+    "apps/web"
+  ],
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [],
+    "designSystem": {
+      "enabled": true
+    }
+  }
+}

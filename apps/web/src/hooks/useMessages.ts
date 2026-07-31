@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isMockMode, listMessages } from '../lib/api';
 import { mockApi } from '../lib/mock';
 import type { Message } from '../types/api';
@@ -19,6 +19,7 @@ export function useMessages(sessionId: string | null, enabled = true) {
         : listMessages(sessionId);
     },
     enabled: enabled && !!sessionId,
+    placeholderData: keepPreviousData,
   });
 
   const setMessages = (updater: (prev: Message[]) => Message[]) => {
@@ -35,7 +36,9 @@ export function useMessages(sessionId: string | null, enabled = true) {
 
   return {
     messages: query.data ?? [],
-    isLoading: query.isLoading,
+    // Only treat as blocking load when we have nothing to show yet
+    isLoading: query.isLoading && !query.data,
+    isFetching: query.isFetching,
     error: query.error,
     setMessages,
     invalidate,

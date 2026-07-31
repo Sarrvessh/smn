@@ -1,6 +1,7 @@
 import type {
   AnonymousUser,
   Artifact,
+  KnowledgeStatus,
   Message,
   ProvidersHealth,
   Session,
@@ -11,7 +12,9 @@ const MOCK_USER: AnonymousUser = {
   created_at: new Date().toISOString(),
 };
 
-let mockSessions: Session[] = [
+const MOCK_STATE_KEY = 'lenny_mock_state';
+
+const defaultSessions: Session[] = [
   {
     id: '10000000-0000-4000-8000-000000000001',
     title: 'Product-market fit patterns',
@@ -23,7 +26,7 @@ let mockSessions: Session[] = [
   },
 ];
 
-const mockMessages: Record<string, Message[]> = {
+const defaultMessages: Record<string, Message[]> = {
   '10000000-0000-4000-8000-000000000001': [
     {
       id: '20000000-0000-4000-8000-000000000001',
@@ -64,7 +67,60 @@ const mockMessages: Record<string, Message[]> = {
   ],
 };
 
-const mockArtifacts: Record<string, Artifact> = {};
+interface MockState {
+  sessions: Session[];
+  messages: Record<string, Message[]>;
+  artifacts: Record<string, Artifact>;
+}
+
+function loadState(): MockState {
+  if (typeof window === 'undefined') {
+    return {
+      sessions: [...defaultSessions],
+      messages: { ...defaultMessages },
+      artifacts: {},
+    };
+  }
+  const raw = window.localStorage.getItem(MOCK_STATE_KEY);
+  if (!raw) {
+    return {
+      sessions: [...defaultSessions],
+      messages: { ...defaultMessages },
+      artifacts: {},
+    };
+  }
+  try {
+    const parsed = JSON.parse(raw) as MockState;
+    return {
+      sessions: parsed.sessions ?? [...defaultSessions],
+      messages: parsed.messages ?? { ...defaultMessages },
+      artifacts: parsed.artifacts ?? {},
+    };
+  } catch {
+    return {
+      sessions: [...defaultSessions],
+      messages: { ...defaultMessages },
+      artifacts: {},
+    };
+  }
+}
+
+const loadedState = loadState();
+let mockSessions: Session[] = loadedState.sessions;
+const mockMessages: Record<string, Message[]> = loadedState.messages;
+const mockArtifacts: Record<string, Artifact> = loadedState.artifacts;
+
+function saveState() {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(
+    MOCK_STATE_KEY,
+    JSON.stringify({
+      sessions: mockSessions,
+      messages: mockMessages,
+      artifacts: mockArtifacts,
+    }),
+  );
+}
 
 export const mockApi = {
   createAnonymousUser(): Promise<AnonymousUser> {
@@ -87,6 +143,7 @@ export const mockApi = {
     };
     mockSessions = [session, ...mockSessions];
     mockMessages[session.id] = [];
+    saveState();
     return Promise.resolve(session);
   },
 
@@ -111,11 +168,13 @@ export const mockApi = {
     });
     const session = mockSessions.find((s) => s.id === id);
     if (!session) throw new Error('Session not found');
+    saveState();
     return Promise.resolve(session);
   },
 
   archiveSession(id: string): Promise<void> {
     mockSessions = mockSessions.filter((s) => s.id !== id);
+    saveState();
     return Promise.resolve();
   },
 
@@ -136,7 +195,7 @@ export const mockApi = {
           id: 'ollama',
           configured: true,
           healthy: true,
-          models: ['qwen2.5:7b'],
+          models: ['qwen2.5:7b', 'qwen3:4b'],
         },
         {
           id: 'anthropic',
@@ -147,15 +206,38 @@ export const mockApi = {
       ],
     });
   },
+
+  getKnowledgeStatus(): Promise<KnowledgeStatus> {
+    return Promise.resolve({
+      episodes: 18,
+      chunks: 642,
+      ready: true,
+      embedding_dim: 768,
+    });
+  },
 };
 
 export function registerMockArtifact(artifact: Artifact): void {
   mockArtifacts[artifact.id] = artifact;
+  saveState();
 }
 
 export function appendMockMessage(sessionId: string, message: Message): void {
   if (!mockMessages[sessionId]) mockMessages[sessionId] = [];
   mockMessages[sessionId].push(message);
+  mockSessions = mockSessions.map((s) =>
+    s.id === sessionId
+      ? {
+          ...s,
+          title:
+            s.title === 'New chat' && message.role === 'user'
+              ? message.content.slice(0, 52)
+              : s.title,
+          updated_at: new Date().toISOString(),
+        }
+      : s,
+  );
+  saveState();
 }
 
 export function updateMockMessage(
@@ -168,5 +250,6 @@ export function updateMockMessage(
   const idx = list.findIndex((m) => m.id === messageId);
   if (idx >= 0) {
     list[idx] = { ...list[idx], ...patch };
+    saveState();
   }
 }

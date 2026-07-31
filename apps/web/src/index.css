@@ -3,12 +3,57 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    /* Linear × ChatGPT × Apple — cool neutrals, indigo accent, no warm cream */
+    --background: 240 6% 97%;
+    --foreground: 240 10% 8%;
+    --surface: 0 0% 100%;
+    --surface-elevated: 0 0% 100%;
+    --surface-hover: 240 6% 94%;
+    --surface-active: 234 60% 96%;
+    --border: 240 8% 90%;
+    --border-strong: 240 7% 80%;
+    --muted: 240 6% 94%;
+    --muted-foreground: 240 5% 42%;
+    --accent: 234 68% 59%;
+    --accent-foreground: 0 0% 100%;
+    --success: 152 55% 36%;
+    --warning: 38 92% 45%;
+    --destructive: 4 72% 50%;
+    --composer-shadow: 0 8px 30px rgba(15, 15, 20, 0.08), 0 1px 0 rgba(15, 15, 20, 0.04);
+    --panel-shadow: 0 16px 48px rgba(15, 15, 20, 0.12);
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .dark {
+    --background: 240 6% 7%;
+    --foreground: 240 8% 96%;
+    --surface: 240 5% 10%;
+    --surface-elevated: 240 5% 12%;
+    --surface-hover: 240 5% 15%;
+    --surface-active: 234 28% 18%;
+    --border: 240 5% 18%;
+    --border-strong: 240 5% 28%;
+    --muted: 240 5% 14%;
+    --muted-foreground: 240 5% 62%;
+    --accent: 234 78% 70%;
+    --accent-foreground: 240 10% 8%;
+    --success: 152 50% 48%;
+    --warning: 40 90% 55%;
+    --destructive: 4 78% 64%;
+    --composer-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+    --panel-shadow: 0 20px 56px rgba(0, 0, 0, 0.55);
+  }
+
   html {
     @apply antialiased;
+    font-feature-settings: 'ss01' on, 'cv11' on;
+    text-rendering: optimizeLegibility;
   }
 
   body {
-    @apply m-0 min-h-screen font-sans text-ink-800 bg-workspace;
+    @apply m-0 min-h-screen overflow-hidden bg-background font-sans text-foreground;
+    letter-spacing: -0.011em;
   }
 
   #root {
@@ -16,75 +61,242 @@
   }
 
   ::selection {
-    @apply bg-accent-light text-ink-900;
+    @apply bg-surface-active text-foreground;
+  }
+
+  :focus-visible {
+    @apply outline outline-2 outline-offset-2 outline-accent;
   }
 }
 
 @layer components {
-  .panel {
-    @apply bg-white/70 backdrop-blur-sm border border-ink-200/60;
+  .app-shell {
+    @apply h-[100dvh] overflow-hidden bg-background text-foreground;
+  }
+
+  .workspace-grid {
+    @apply grid h-full min-h-0 grid-cols-1 lg:grid-cols-[16.5rem_minmax(0,1fr)_22rem];
+    transition: grid-template-columns 220ms var(--ease-out);
+  }
+
+  .workspace-grid.sidebar-collapsed {
+    @apply lg:grid-cols-[3.75rem_minmax(0,1fr)_22rem];
+  }
+
+  .workspace-grid.artifact-hidden {
+    @apply lg:grid-cols-[16.5rem_minmax(0,1fr)_0fr];
+  }
+
+  .workspace-grid.sidebar-collapsed.artifact-hidden {
+    @apply lg:grid-cols-[3.75rem_minmax(0,1fr)_0fr];
+  }
+
+  .surface-panel {
+    @apply border-border bg-surface text-foreground;
+  }
+
+  .surface-elevated {
+    @apply border border-border bg-surface-elevated text-foreground;
+    box-shadow: var(--composer-shadow);
+  }
+
+  .icon-button {
+    @apply inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition;
+    transition-timing-function: var(--ease-out);
+    transition-duration: 160ms;
+  }
+
+  .icon-button:hover {
+    @apply bg-surface-hover text-foreground;
+  }
+
+  .icon-button:disabled {
+    @apply pointer-events-none opacity-40;
+  }
+
+  .icon-button-quiet {
+    @apply icon-button h-7 w-7;
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-50;
+    @apply inline-flex min-h-8 items-center justify-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-[13px] font-medium text-accent-foreground transition;
+    transition-timing-function: var(--ease-out);
+    transition-duration: 160ms;
+  }
+
+  .btn-primary:hover {
+    filter: brightness(1.05);
+  }
+
+  .btn-primary:disabled {
+    @apply pointer-events-none opacity-40;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center rounded-lg border border-ink-200 bg-white/80 px-3 py-1.5 text-sm font-medium text-ink-700 transition hover:bg-ink-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent;
+    @apply inline-flex min-h-8 items-center justify-center gap-1.5 rounded-md border border-border bg-surface-elevated px-3 py-1.5 text-[13px] font-medium text-foreground transition hover:bg-surface-hover;
+  }
+
+  .btn-secondary:disabled {
+    @apply pointer-events-none opacity-40;
+  }
+
+  .btn-ghost {
+    @apply inline-flex min-h-7 items-center justify-center gap-1 rounded-md px-2 py-1 text-[12px] font-medium text-muted-foreground transition hover:bg-surface-hover hover:text-foreground;
+  }
+
+  .btn-ghost:disabled {
+    @apply pointer-events-none opacity-40;
   }
 
   .input-field {
-    @apply w-full rounded-lg border border-ink-200 bg-white/90 px-3 py-2 text-sm text-ink-800 placeholder:text-ink-400 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent;
+    @apply w-full rounded-md border border-border bg-background px-3 py-2 text-[13px] text-foreground placeholder:text-muted-foreground/70 transition focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25 disabled:cursor-not-allowed disabled:opacity-55;
+  }
+
+  .select-field {
+    @apply min-h-8 rounded-md border border-border bg-background px-2 py-1 text-[12px] font-medium text-foreground transition hover:bg-surface-hover focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25 disabled:cursor-not-allowed disabled:opacity-55;
+  }
+
+  .segmented {
+    @apply inline-flex items-center gap-0.5 rounded-lg bg-muted p-0.5;
+  }
+
+  .segmented-button {
+    @apply rounded-md px-2.5 py-1 text-[12px] font-medium text-muted-foreground transition;
+    transition-timing-function: var(--ease-out);
+    transition-duration: 160ms;
+  }
+
+  .segmented-button:hover {
+    @apply text-foreground;
+  }
+
+  .segmented-button[aria-checked='true'],
+  .segmented-button[aria-selected='true'] {
+    @apply bg-surface-elevated text-foreground shadow-sm;
+  }
+
+  .status-dot {
+    @apply inline-block h-1.5 w-1.5 rounded-full bg-muted-foreground;
+  }
+
+  .status-dot.healthy {
+    @apply bg-success;
+  }
+
+  .status-dot.warning {
+    @apply bg-warning;
+  }
+
+  .status-dot.unavailable {
+    @apply bg-destructive;
+  }
+
+  .skeleton {
+    @apply animate-pulse rounded-md bg-muted;
   }
 
   .streaming-cursor::after {
     content: '';
-    @apply inline-block w-0.5 h-4 ml-0.5 bg-accent align-middle animate-pulse;
+    @apply ml-0.5 inline-block h-3.5 w-0.5 align-middle bg-accent;
+    animation: blink 1s step-end infinite;
+  }
+
+  .composer-shell {
+    box-shadow: var(--composer-shadow);
+  }
+
+  .panel-float {
+    box-shadow: var(--panel-shadow);
+  }
+
+  .message-enter {
+    animation: message-in 220ms var(--ease-out) both;
+  }
+
+  .safe-bottom {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
   }
 }
 
-/* Markdown preview styles */
+@layer utilities {
+  .scrollbar-stable {
+    scrollbar-gutter: stable;
+  }
+
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes message-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .markdown-body {
-  @apply text-sm leading-relaxed text-ink-800;
+  @apply max-w-none text-[15px] leading-7 text-foreground;
+  letter-spacing: -0.011em;
 }
 
 .markdown-body h1,
 .markdown-body h2,
 .markdown-body h3 {
-  @apply font-semibold text-ink-900 mt-4 mb-2 first:mt-0;
+  @apply mb-2 mt-6 font-semibold tracking-tight text-foreground first:mt-0;
 }
 
 .markdown-body h1 {
-  @apply text-xl;
+  @apply text-[1.35rem] leading-8;
 }
 
 .markdown-body h2 {
-  @apply text-lg;
+  @apply text-[1.15rem] leading-7;
 }
 
 .markdown-body h3 {
-  @apply text-base;
+  @apply text-[0.98rem] leading-6;
 }
 
 .markdown-body p {
-  @apply mb-3;
+  @apply mb-4;
 }
 
 .markdown-body ul,
 .markdown-body ol {
-  @apply mb-3 space-y-1.5 pl-5;
+  @apply mb-4 space-y-1.5 pl-5;
 }
 
 .markdown-body li {
-  @apply leading-relaxed;
+  @apply leading-7;
 }
 
 .markdown-body li > p {
-  @apply mb-0;
+  @apply mb-1;
 }
 
 .markdown-body strong {
-  @apply font-semibold text-ink-900;
+  @apply font-semibold text-foreground;
 }
 
 .markdown-body ul {
@@ -96,15 +308,19 @@
 }
 
 .markdown-body a {
-  @apply text-accent underline;
+  @apply text-accent underline decoration-accent/35 underline-offset-2 hover:decoration-accent;
 }
 
 .markdown-body code {
-  @apply rounded bg-ink-100 px-1 py-0.5 text-xs font-mono;
+  @apply rounded-md bg-muted px-1.5 py-0.5 font-mono text-[0.84em] text-foreground;
 }
 
 .markdown-body pre {
-  @apply mb-3 overflow-x-auto rounded-lg bg-ink-900 p-3 text-xs text-ink-50;
+  @apply mb-4 overflow-x-auto rounded-lg border border-border bg-foreground/95 p-3 text-[12px] leading-6 text-background;
+}
+
+.dark .markdown-body pre {
+  @apply bg-black/50 text-foreground;
 }
 
 .markdown-body pre code {
@@ -112,22 +328,33 @@
 }
 
 .markdown-body blockquote {
-  @apply border-l-4 border-accent/40 pl-4 italic text-ink-600;
+  @apply my-4 border-l-2 border-accent/50 pl-4 text-muted-foreground;
 }
 
 .markdown-body table {
-  @apply mb-3 w-full border-collapse text-xs;
+  @apply mb-4 block w-full overflow-x-auto border-collapse text-[13px];
 }
 
 .markdown-body th,
 .markdown-body td {
-  @apply border border-ink-200 px-2 py-1;
+  @apply border border-border px-3 py-2 text-left align-top;
 }
 
 .markdown-body th {
-  @apply bg-ink-50 font-medium;
+  @apply bg-muted font-semibold;
 }
 
 .citation-link {
-  @apply inline-flex items-center rounded bg-accent-light px-1 py-0.5 text-xs font-medium text-accent hover:bg-accent/20 cursor-pointer;
+  @apply mx-0.5 inline-flex items-center rounded-md border border-accent/20 bg-surface-active px-1.5 py-0.5 align-baseline text-[11px] font-semibold text-accent no-underline transition hover:border-accent/50;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }

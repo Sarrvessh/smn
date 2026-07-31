@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -6,6 +6,7 @@ import rehypeSanitize from 'rehype-sanitize';
 import { getArtifact, isMockMode } from '../../lib/api';
 import { mockApi } from '../../lib/mock';
 import { useUiStore } from '../../stores/ui';
+import { IconClose, IconCopy, IconExpand } from '../../components/Icons';
 
 type Tab = 'preview' | 'code';
 
@@ -15,25 +16,44 @@ function buildSandboxHtml(content: string): string {
     "style-src 'unsafe-inline'",
     "img-src data: https:",
     "font-src data: https:",
+    "base-uri 'none'",
+    "form-action 'none'",
+    "script-src 'none'",
   ].join('; ');
 
-  return `<!DOCTYPE html>
+  return `<!doctype html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta http-equiv="Content-Security-Policy" content="${csp}" />
   <meta name="referrer" content="no-referrer" />
   <style>
-    body { font-family: 'IBM Plex Sans', system-ui, sans-serif; margin: 1rem; color: #352d25; background: #f6f1e8; }
+    :root { color-scheme: light; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #f8f7f4;
+      color: #22201d;
+      font-family: Inter, system-ui, sans-serif;
+    }
   </style>
 </head>
 <body>${content}</body>
 </html>`;
 }
 
+function numberedCode(content: string) {
+  return content.split('\n').map((line, index) => ({
+    number: index + 1,
+    line,
+  }));
+}
+
 export function ArtifactViewer() {
   const selectedArtifactId = useUiStore((s) => s.selectedArtifactId);
   const setArtifactPanelOpen = useUiStore((s) => s.setArtifactPanelOpen);
+  const artifactFullscreen = useUiStore((s) => s.artifactFullscreen);
+  const setArtifactFullscreen = useUiStore((s) => s.setArtifactFullscreen);
   const [tab, setTab] = useState<Tab>('preview');
   const [copied, setCopied] = useState(false);
 
@@ -48,11 +68,16 @@ export function ArtifactViewer() {
     enabled: !!selectedArtifactId,
   });
 
+  const codeLines = useMemo(
+    () => numberedCode(artifact?.content ?? ''),
+    [artifact?.content],
+  );
+
   const handleCopy = async () => {
     if (!artifact) return;
     await navigator.clipboard.writeText(artifact.content);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setTimeout(() => setCopied(false), 1800);
   };
 
   const handleDownload = () => {
@@ -68,70 +93,77 @@ export function ArtifactViewer() {
     URL.revokeObjectURL(url);
   };
 
-  if (!selectedArtifactId) {
-    return (
-      <aside className="flex h-full w-full flex-col panel border-l-0 lg:border-l">
-        <header className="border-b border-ink-200/60 px-4 py-3">
-          <h2 className="text-sm font-semibold text-ink-800">Artifact Viewer</h2>
-        </header>
-        <div className="flex flex-1 items-center justify-center p-6 text-center text-sm text-ink-500">
-          Generated essays and artifacts appear here.
-        </div>
-      </aside>
-    );
-  }
+  const isHtml = artifact?.type === 'html' || artifact?.language === 'html';
 
   return (
-    <aside className="flex h-full w-full flex-col panel border-l-0 lg:border-l">
-      <header className="flex items-center justify-between gap-2 border-b border-ink-200/60 px-4 py-3">
+    <aside
+      className={`surface-panel flex h-full w-full flex-col border-l ${
+        artifactFullscreen ? 'fixed inset-0 z-50 border-l-0' : ''
+      }`}
+      aria-label="Artifact workspace"
+    >
+      <header className="flex min-h-12 items-center justify-between gap-2 border-b border-border px-4 py-2.5">
         <div className="min-w-0">
-          <h2 className="truncate text-sm font-semibold text-ink-800">
-            {artifact?.title ?? 'Artifact'}
+          <h2 className="truncate text-[13px] font-semibold tracking-tight">
+            {artifact?.title ?? 'Artifact workspace'}
           </h2>
-          {artifact && (
-            <p className="text-xs text-ink-500">{artifact.type}</p>
-          )}
+          <p className="text-[11px] text-muted-foreground">
+            {artifact
+              ? `${artifact.type} / ${artifact.language}`
+              : 'Preview generated work beside the chat'}
+          </p>
         </div>
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex shrink-0 items-center gap-0.5">
           <button
             type="button"
-            className="btn-secondary text-xs lg:hidden"
-            onClick={() => setArtifactPanelOpen(false)}
-            aria-label="Close artifact panel"
-          >
-            Close
-          </button>
-          <button
-            type="button"
-            className="btn-secondary text-xs"
+            className="icon-button"
             onClick={() => void handleCopy()}
             disabled={!artifact}
+            aria-label="Copy artifact"
+            title={copied ? 'Copied' : 'Copy'}
           >
-            {copied ? 'Copied' : 'Copy'}
+            <IconCopy />
           </button>
           <button
             type="button"
-            className="btn-secondary text-xs"
+            className="icon-button"
             onClick={handleDownload}
             disabled={!artifact}
+            aria-label="Download artifact"
+            title="Download"
           >
-            Download
+            <IconCopy className="opacity-70" />
+          </button>
+          <button
+            type="button"
+            className="icon-button"
+            onClick={() => setArtifactFullscreen(!artifactFullscreen)}
+            disabled={!artifact}
+            aria-label={artifactFullscreen ? 'Exit fullscreen' : 'Fullscreen artifact'}
+            title={artifactFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+          >
+            <IconExpand />
+          </button>
+          <button
+            type="button"
+            className="icon-button"
+            onClick={() => setArtifactPanelOpen(false)}
+            aria-label="Close artifact workspace"
+            title="Close"
+          >
+            <IconClose />
           </button>
         </div>
       </header>
 
-      <div className="flex border-b border-ink-200/60 px-4" role="tablist">
+      <div className="flex border-b border-border px-4" role="tablist" aria-label="Artifact view">
         {(['preview', 'code'] as Tab[]).map((t) => (
           <button
             key={t}
             type="button"
             role="tab"
             aria-selected={tab === t}
-            className={`border-b-2 px-3 py-2 text-xs font-medium capitalize transition ${
-              tab === t
-                ? 'border-accent text-accent'
-                : 'border-transparent text-ink-500 hover:text-ink-700'
-            }`}
+            className="segmented-button rounded-none border-b-2 border-transparent px-3 py-3 capitalize aria-selected:border-accent aria-selected:bg-transparent aria-selected:shadow-none"
             onClick={() => setTab(t)}
           >
             {t}
@@ -139,39 +171,69 @@ export function ArtifactViewer() {
         ))}
       </div>
 
-      <div className="flex-1 overflow-auto p-4">
-        {isLoading && (
-          <p className="text-sm text-ink-500">Loading artifact...</p>
+      <div className="min-h-0 flex-1 overflow-auto bg-muted/35 p-3">
+        {!selectedArtifactId && (
+          <div className="flex h-full flex-col items-center justify-center px-6 text-center">
+            <div className="max-w-sm">
+              <p className="text-sm font-semibold">No artifact selected</p>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                Ship30 essays, Markdown briefs, and HTML strategy dashboards open here when a response creates one.
+              </p>
+            </div>
+          </div>
         )}
+
+        {selectedArtifactId && isLoading && (
+          <div className="space-y-3 p-3" aria-label="Loading artifact">
+            <div className="skeleton h-8 w-2/3" />
+            <div className="skeleton h-36 w-full" />
+            <div className="skeleton h-36 w-full" />
+          </div>
+        )}
+
         {error && (
-          <p className="text-sm text-red-600">
-            {error instanceof Error ? error.message : 'Failed to load artifact'}
-          </p>
+          <div className="surface-elevated rounded-lg p-4 text-sm">
+            <p className="font-semibold text-destructive">Artifact could not load</p>
+            <p className="mt-2 text-muted-foreground">
+              Select another artifact or retry the generation from the chat.
+            </p>
+          </div>
         )}
+
         {artifact && tab === 'code' && (
-          <pre className="overflow-x-auto rounded-lg bg-ink-900 p-4 text-xs text-ink-50">
-            <code>{artifact.content}</code>
+          <pre className="min-h-full overflow-auto rounded-lg border border-border bg-foreground p-0 font-mono text-xs leading-6 text-background dark:bg-black/40 dark:text-foreground">
+            <code className="block min-w-max py-3">
+              {codeLines.map(({ number, line }) => (
+                <span key={number} className="grid grid-cols-[3.5rem_minmax(0,1fr)]">
+                  <span className="select-none border-r border-background/20 px-3 text-right text-background/55 dark:border-foreground/15 dark:text-foreground/45">
+                    {number}
+                  </span>
+                  <span className="whitespace-pre px-3">{line || ' '}</span>
+                </span>
+              ))}
+            </code>
           </pre>
         )}
+
         {artifact && tab === 'preview' && (
           <>
-            {artifact.type === 'html' || artifact.language === 'html' ? (
+            {isHtml ? (
               <iframe
                 title={artifact.title}
                 sandbox=""
                 referrerPolicy="no-referrer"
                 srcDoc={buildSandboxHtml(artifact.content)}
-                className="h-full min-h-[24rem] w-full rounded-lg border border-ink-200 bg-white"
+                className="h-full min-h-[32rem] w-full rounded-lg border border-border bg-white"
               />
             ) : (
-              <div className="markdown-body rounded-lg bg-white/80 p-4">
+              <article className="markdown-body mx-auto min-h-full max-w-3xl rounded-xl border border-border bg-surface-elevated px-5 py-6 sm:px-8">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   rehypePlugins={[rehypeSanitize]}
                 >
                   {artifact.content}
                 </ReactMarkdown>
-              </div>
+              </article>
             )}
           </>
         )}
