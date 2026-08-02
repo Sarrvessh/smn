@@ -142,10 +142,22 @@ class OpenRouterProvider:
         if isinstance(exc, httpx.HTTPStatusError):
             status = exc.response.status_code
             body = (exc.response.text or "")[:400]
+            lowered = body.lower()
             if status in {401, 403}:
                 return AppError(
                     PROVIDER_NOT_CONFIGURED,
                     "OpenRouter rejected the API key. Check OPENROUTER_API_KEY.",
+                    retryable=False,
+                    status_code=400,
+                )
+            if status == 404 and (
+                "data policy" in lowered or "guardrail" in lowered or "no endpoints" in lowered
+            ):
+                return AppError(
+                    "PROVIDER_ERROR",
+                    "OpenRouter blocked this model under your privacy/guardrail settings. "
+                    "Pick another model in the header, or relax restrictions at "
+                    "https://openrouter.ai/settings/privacy (and Ignored/Allowed providers).",
                     retryable=False,
                     status_code=400,
                 )
@@ -192,53 +204,55 @@ class OpenRouterProvider:
         options: GenerationOptions,
     ) -> AsyncIterator[StreamEvent]:
         try:
-            async with httpx.AsyncClient(timeout=self._timeout()) as client:
-                async with client.stream(
+            async with (
+                httpx.AsyncClient(timeout=self._timeout()) as client,
+                client.stream(
                     "POST",
                     f"{self.base_url}/chat/completions",
                     headers=self._headers(),
                     json=self._payload(messages, options, stream=True),
-                ) as resp:
-                    if resp.status_code >= 400:
-                        body = (await resp.aread()).decode("utf-8", errors="replace")[:400]
-                        raise httpx.HTTPStatusError(
-                            f"OpenRouter stream failed: {body}",
-                            request=resp.request,
-                            response=resp,
+                ) as resp,
+            ):
+                if resp.status_code >= 400:
+                    body = (await resp.aread()).decode("utf-8", errors="replace")[:400]
+                    raise httpx.HTTPStatusError(
+                        f"OpenRouter stream failed: {body}",
+                        request=resp.request,
+                        response=resp,
+                    )
+                async for line in resp.aiter_lines():
+                    if not line:
+                        continue
+                    if line.startswith(":"):
+                        continue
+                    if not line.startswith("data:"):
+                        continue
+                    data = line[5:].strip()
+                    if not data or data == "[DONE]":
+                        if data == "[DONE]":
+                            break
+                        continue
+                    try:
+                        chunk = json.loads(data)
+                    except json.JSONDecodeError:
+                        logger.debug("Skipping non-JSON OpenRouter chunk: %s", data[:80])
+                        continue
+                    if chunk.get("error"):
+                        err = chunk["error"]
+                        msg = err.get("message") if isinstance(err, dict) else str(err)
+                        yield StreamEvent(
+                            type="error",
+                            error_code="PROVIDER_ERROR",
+                            error_message=msg or "OpenRouter stream error",
                         )
-                    async for line in resp.aiter_lines():
-                        if not line:
-                            continue
-                        if line.startswith(":"):
-                            continue
-                        if not line.startswith("data:"):
-                            continue
-                        data = line[5:].strip()
-                        if not data or data == "[DONE]":
-                            if data == "[DONE]":
-                                break
-                            continue
-                        try:
-                            chunk = json.loads(data)
-                        except json.JSONDecodeError:
-                            logger.debug("Skipping non-JSON OpenRouter chunk: %s", data[:80])
-                            continue
-                        if chunk.get("error"):
-                            err = chunk["error"]
-                            msg = err.get("message") if isinstance(err, dict) else str(err)
-                            yield StreamEvent(
-                                type="error",
-                                error_code="PROVIDER_ERROR",
-                                error_message=msg or "OpenRouter stream error",
-                            )
-                            return
-                        choices = chunk.get("choices") or []
-                        if not choices:
-                            continue
-                        delta = choices[0].get("delta") or {}
-                        text = delta.get("content") or ""
-                        if text:
-                            yield StreamEvent(type="token", text=text)
+                        return
+                    choices = chunk.get("choices") or []
+                    if not choices:
+                        continue
+                    delta = choices[0].get("delta") or {}
+                    text = delta.get("content") or ""
+                    if text:
+                        yield StreamEvent(type="token", text=text)
             yield StreamEvent(type="done")
         except AppError as exc:
             yield StreamEvent(type="error", error_code=exc.code, error_message=exc.message)

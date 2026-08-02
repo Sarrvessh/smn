@@ -33,7 +33,7 @@ async def messages_stream(
     db: AsyncSession = Depends(get_db),
 ) -> StreamingResponse:
     async def event_gen():
-        async for line in stream_message(
+        generation = stream_message(
             db,
             session_id,
             user.id,
@@ -41,10 +41,14 @@ async def messages_stream(
             mode=body.mode,
             provider=body.provider,
             model=body.model,
-        ):
-            if await request.is_disconnected():
-                break
-            yield line
+        )
+        try:
+            async for line in generation:
+                if await request.is_disconnected():
+                    break
+                yield line
+        finally:
+            await generation.aclose()
 
     return StreamingResponse(event_gen(), media_type="application/x-ndjson")
 

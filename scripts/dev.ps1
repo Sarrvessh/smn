@@ -1,8 +1,8 @@
 # Lenny Growth Assistant — PowerShell helpers (Windows)
 
 $ErrorActionPreference = "Stop"
-$Root = Split-Path -Parent $MyInvocation.MyCommand.Path
-if (-not $Root) { $Root = Get-Location }
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$Root = if ($ScriptDir) { Split-Path -Parent $ScriptDir } else { Get-Location }
 $Api = Join-Path $Root "apps\api"
 $Web = Join-Path $Root "apps\web"
 $VenvPy = Join-Path $Api ".venv\Scripts\python.exe"

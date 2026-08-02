@@ -65,6 +65,7 @@ export function ArtifactViewer() {
   const setArtifactFullscreen = useUiStore((s) => s.setArtifactFullscreen);
   const [tab, setTab] = useState<Tab>('preview');
   const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
 
   const { data: artifact, isLoading, error } = useQuery({
     queryKey: ['artifact', selectedArtifactId],
@@ -84,9 +85,16 @@ export function ArtifactViewer() {
 
   const handleCopy = async () => {
     if (!artifact) return;
-    await navigator.clipboard.writeText(artifact.content);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1800);
+    try {
+      await navigator.clipboard.writeText(artifact.content);
+      setCopyFailed(false);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      setCopied(false);
+      setCopyFailed(true);
+      setTimeout(() => setCopyFailed(false), 2400);
+    }
   };
 
   const handleDownload = () => {
@@ -135,7 +143,7 @@ export function ArtifactViewer() {
             onClick={() => void handleCopy()}
             disabled={!artifact}
             aria-label="Copy artifact"
-            title={copied ? 'Copied' : 'Copy'}
+            title={copied ? 'Copied' : copyFailed ? 'Copy failed' : 'Copy'}
           >
             <IconCopy />
           </button>

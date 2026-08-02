@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import time
@@ -14,7 +15,13 @@ from app.agents.formatting import normalize_qa_markdown
 from app.agents.schemas import route_skill
 from app.agents.skills import iter_transcript_qa, run_artifact, run_ship30
 from app.core.config import get_settings
-from app.core.errors import INVALID_SESSION, KNOWLEDGE_BASE_EMPTY, OLLAMA_MODEL_MISSING, AppError
+from app.core.errors import (
+    INVALID_SESSION,
+    KNOWLEDGE_BASE_EMPTY,
+    OLLAMA_MODEL_MISSING,
+    STREAM_INTERRUPTED,
+    AppError,
+)
 from app.core.security import validate_artifact_content
 from app.db.models import AgentRun, Artifact, ChatSession, Message, MessageSource
 from app.ingestion.pipeline import knowledge_status
@@ -45,6 +52,26 @@ async def get_owned_session(session: AsyncSession, session_id: UUID, user_id: UU
     if not chat:
         raise AppError(INVALID_SESSION, "Session not found.", retryable=False, status_code=404)
     return chat
+
+
+async def _mark_cancelled(
+    db: AsyncSession,
+    assistant_msg: Message,
+    run: AgentRun,
+    started: float,
+    partial_text: str = "",
+) -> None:
+    """Persist terminal cancellation when the HTTP stream is closed early."""
+    if assistant_msg.status != "streaming" or run.status != "running":
+        return
+    assistant_msg.status = "cancelled"
+    assistant_msg.error_code = STREAM_INTERRUPTED
+    if partial_text.strip():
+        assistant_msg.content = partial_text
+    run.status = "cancelled"
+    run.error_code = STREAM_INTERRUPTED
+    run.duration_ms = int((time.time() - started) * 1000)
+    await db.commit()
 
 
 async def stream_message(
@@ -115,6 +142,7 @@ async def stream_message(
 
     yield ndjson("run_started", run_id=str(run.id), message_id=str(assistant_msg.id))
 
+    answer_text = ""
     try:
         if _is_embedding_model(model):
             raise AppError(
@@ -150,13 +178,17 @@ async def stream_message(
         retrieval_started = time.time()
 
         hist_rows = (
-            await db.execute(
-                select(Message)
-                .where(Message.session_id == chat.id, Message.id != assistant_msg.id)
-                .order_by(Message.created_at.desc())
-                .limit(12)
+            (
+                await db.execute(
+                    select(Message)
+                    .where(Message.session_id == chat.id, Message.id != assistant_msg.id)
+                    .order_by(Message.created_at.desc())
+                    .limit(12)
+                )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         history = [
             ChatMessage(
                 role=m.role if m.role in {"user", "assistant", "system"} else "user",
@@ -183,7 +215,6 @@ async def stream_message(
 
         yield ndjson("status", stage="generating", label="Generating answer…")
         gen_started = time.time()
-        answer_text = ""
         title = None
         artifact_type = None
         content_body = None
@@ -202,7 +233,9 @@ async def stream_message(
             result = await run_artifact(
                 content, chunks, history, provider_name, model_name, decision.artifact_type
             )
-            answer_text = result.summary or f"Created {result.artifact_type} artifact: {result.title}"
+            answer_text = (
+                result.summary or f"Created {result.artifact_type} artifact: {result.title}"
+            )
             title = result.title
             artifact_type = result.artifact_type
             content_body = result.content
@@ -210,7 +243,6 @@ async def stream_message(
                 yield ndjson("token", text=answer_text[i : i + 40])
         else:
             # Live token stream for Q&A
-            parts: list[str] = []
             async for piece in iter_transcript_qa(
                 content,
                 chunks,
@@ -220,9 +252,8 @@ async def stream_message(
                 intent=retrieval_plan.intent,
                 scoped_missing=retrieval_plan.scoped_missing,
             ):
-                parts.append(piece)
+                answer_text += piece
                 yield ndjson("token", text=piece)
-            answer_text = "".join(parts)
 
         if decision.skill == "transcript_qa":
             answer_text = normalize_qa_markdown(answer_text)
@@ -231,7 +262,16 @@ async def stream_message(
 
         yield ndjson("status", stage="validating", label="Validating citations")
         valid_ids = {s["id"] for s in sources}
-        cleaned, valid_cites, invalid_cites = validate_citations(answer_text, valid_ids)
+        if decision.skill == "artifact_generator":
+            cleaned, _summary_cites, summary_invalid_cites = validate_citations(
+                answer_text, valid_ids
+            )
+            content_body, valid_cites, invalid_cites = validate_citations(
+                content_body or "", valid_ids
+            )
+            invalid_cites = sorted(set(invalid_cites + summary_invalid_cites))
+        else:
+            cleaned, valid_cites, invalid_cites = validate_citations(answer_text, valid_ids)
         if decision.skill == "transcript_qa":
             cleaned = normalize_qa_markdown(cleaned)
         if invalid_cites:
@@ -289,7 +329,9 @@ async def stream_message(
                 title=art.title,
             )
             if decision.skill == "ship30_essay":
-                cleaned = f"**{art.title}**\n\nEssay artifact ready in the side panel.\n\n" + cleaned
+                cleaned = (
+                    f"**{art.title}**\n\nEssay artifact ready in the side panel.\n\n" + cleaned
+                )
 
         if not cleaned.strip():
             cleaned = (
@@ -336,13 +378,24 @@ async def stream_message(
         run.duration_ms = int((time.time() - started) * 1000)
         await db.commit()
         yield ndjson("error", code=exc.code, message=exc.message, retryable=exc.retryable)
-    except Exception as exc:
+    except asyncio.CancelledError:
+        await asyncio.shield(_mark_cancelled(db, assistant_msg, run, started, answer_text))
+        raise
+    except GeneratorExit:
+        await _mark_cancelled(db, assistant_msg, run, started, answer_text)
+        raise
+    except Exception:
         logger.exception("stream_message failed")
         assistant_msg.status = "failed"
-        assistant_msg.error_code = "INTERNAL_ERROR"
-        assistant_msg.content = assistant_msg.content or str(exc)
+        assistant_msg.error_code = STREAM_INTERRUPTED
+        assistant_msg.content = assistant_msg.content or "Generation was interrupted unexpectedly."
         run.status = "failed"
-        run.error_code = "INTERNAL_ERROR"
+        run.error_code = STREAM_INTERRUPTED
         run.duration_ms = int((time.time() - started) * 1000)
         await db.commit()
-        yield ndjson("error", code="INTERNAL_ERROR", message=str(exc), retryable=True)
+        yield ndjson(
+            "error",
+            code=STREAM_INTERRUPTED,
+            message="Generation was interrupted unexpectedly. Retry the request.",
+            retryable=True,
+        )

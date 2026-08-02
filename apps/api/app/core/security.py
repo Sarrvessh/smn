@@ -22,9 +22,11 @@ CSP_META = (
     '<meta http-equiv="Content-Security-Policy" content="'
     "default-src 'none'; style-src 'unsafe-inline'; img-src data:; "
     "font-src data:; connect-src 'none'; script-src 'none'; "
-    "frame-src 'none'; object-src 'none;"
+    "frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none';"
     '">'
 )
+
+HEAD_RE = re.compile(r"<head\b[^>]*>", re.IGNORECASE)
 
 
 def sanitize_html_artifact(content: str) -> str:
@@ -43,10 +45,13 @@ def sanitize_html_artifact(content: str) -> str:
 
     cleaned = content
     if "<html" in cleaned.lower():
-        if "Content-Security-Policy" not in cleaned:
-            cleaned = cleaned.replace("<head>", f"<head>{CSP_META}", 1)
-            if CSP_META not in cleaned:
-                cleaned = CSP_META + cleaned
+        # Multiple CSP policies are cumulative, so an existing permissive policy
+        # cannot weaken the restrictive policy injected here.
+        head = HEAD_RE.search(cleaned)
+        if head:
+            cleaned = cleaned[: head.end()] + CSP_META + cleaned[head.end() :]
+        else:
+            cleaned = CSP_META + cleaned
     else:
         cleaned = f"<!DOCTYPE html><html><head>{CSP_META}</head><body>{cleaned}</body></html>"
     return cleaned

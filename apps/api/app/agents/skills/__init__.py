@@ -3,6 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 
 from app.agents.schemas import ArtifactResult, QAResult, RouteDecision, Ship30Result
+from app.agents.source_appendix import (
+    citation_labels_outside_sources,
+    ensure_html_source_appendix,
+    ensure_markdown_source_appendix,
+)
+from app.core.errors import OLLAMA_MODEL_MISSING, PROVIDER_NOT_CONFIGURED, AppError
 from app.llm.base import ChatMessage, GenerationOptions
 from app.llm.registry import registry
 from app.retrieval.hybrid_search import RetrievedChunk, format_evidence, should_abstain
@@ -135,15 +141,14 @@ async def iter_transcript_qa(
         if event.type == "token" and event.text:
             yield event.text
         elif event.type == "error":
-            from app.core.errors import AppError
-
+            code = event.error_code or "PROVIDER_ERROR"
+            retryable = code not in {PROVIDER_NOT_CONFIGURED, OLLAMA_MODEL_MISSING}
             raise AppError(
-                event.error_code or "OLLAMA_UNAVAILABLE",
+                code,
                 event.error_message or "Generation failed",
-                retryable=True,
-                status_code=502,
+                retryable=retryable,
+                status_code=502 if retryable else 400,
             )
-
 
 
 async def run_ship30(
@@ -164,11 +169,13 @@ async def run_ship30(
                 f"Request:\n{question}\n\n"
                 f"Evidence:\n{evidence}\n\n"
                 "Write a Ship30for30 Markdown essay for one specific reader, grounded only in Evidence. "
-                "Cite with [S#]. Target ~1100–1400 words.\n\n"
+                "Cite with [S#]. Prefer paraphrase; use direct quotes only when they are exact, short, "
+                "and visibly present in the cited passage. Target ~1100–1400 words.\n\n"
                 "Required H2 sections in order after the H1 title:\n"
                 "The hook; The problem; Why common advice fails; What the evidence shows; "
                 "A practical framework; What to do next; The takeaway; Sources.\n\n"
-                "Respond with the essay Markdown only. Start with a clear H1 title. "
+                "The Sources section must include guest, episode, chunk id, URL, and a short excerpt "
+                "for every cited [S#]. Respond with the essay Markdown only. Start with a clear H1 title. "
                 "No preamble, no JSON, no code fence around the essay."
             ),
         ),
@@ -180,21 +187,29 @@ async def run_ship30(
             messages,
             GenerationOptions(model=model, temperature=0.4, max_tokens=8192),
         )
-        words = gen.text.split()
+        markdown_cites = citation_labels_outside_sources(gen.text, "markdown")
+        markdown = ensure_markdown_source_appendix(gen.text, chunks, markdown_cites)
+        words = markdown.split()
         first_line = (
-            gen.text.strip().splitlines()[0].lstrip("# ").strip() if gen.text.strip() else "Ship30 Essay"
+            markdown.strip().splitlines()[0].lstrip("# ").strip()
+            if markdown.strip()
+            else "Ship30 Essay"
         )
         return Ship30Result(
             title=first_line[:120] or "Ship30 Essay",
-            markdown=gen.text,
+            markdown=markdown,
             source_ids=[c.citation_label for c in chunks],
             estimated_word_count=len(words),
         )
+    except AppError:
+        raise
     except Exception:  # noqa: BLE001
         result = await llm.generate_structured(
             messages, Ship30Result, GenerationOptions(model=model, temperature=0.4, max_tokens=8192)
         )
         assert isinstance(result, Ship30Result)
+        markdown_cites = citation_labels_outside_sources(result.markdown, "markdown")
+        result.markdown = ensure_markdown_source_appendix(result.markdown, chunks, markdown_cites)
         if not result.estimated_word_count:
             result.estimated_word_count = len(result.markdown.split())
         return result
@@ -219,12 +234,15 @@ async def run_artifact(
         "(KPI metric cards, bar chart, line/area chart, donut, or funnel diagram). "
         "Label charts; if numbers are illustrative, caption them as a working template. "
         "Include a real <h1>, useful sections, and a Sources section if Evidence was used. "
+        "Sources must include [S#], guest, episode, chunk id, URL, and a short excerpt. "
+        "Prefer paraphrase; use direct quotes only when exact, short, and visibly present in Evidence. "
         "No markdown fences, no commentary before/after the HTML."
         if want_html
         else "Return ONLY Markdown (raw document body). "
         "Start with an H1 title, clear ## sections, at least one checklist or numbered plan, "
         "and include a table or ASCII chart when comparing magnitudes. "
-        "Add ## Sources with [S#] when Evidence was used. "
+        "Add ## Sources with [S#], guest, episode, chunk id, URL, and a short excerpt when Evidence was used. "
+        "Prefer paraphrase; use direct quotes only when exact, short, and visibly present in Evidence. "
         "No preamble, no JSON, no wrapping code fence."
     )
     messages = [
@@ -268,6 +286,8 @@ async def run_artifact(
                     "</style></head><body>"
                     f"<h1>Growth Artifact</h1><div class='card'>{gen.text}</div></body></html>"
                 )
+            html_cites = citation_labels_outside_sources(content, "html")
+            content = ensure_html_source_appendix(content, chunks, html_cites)
             title = _extract_html_title(content) or "Generated HTML Artifact"
             return ArtifactResult(
                 title=title[:120],
@@ -286,6 +306,8 @@ async def run_artifact(
                 md = md[8:].lstrip()
             elif md.lower().startswith("md"):
                 md = md[2:].lstrip()
+        md_cites = citation_labels_outside_sources(md, "markdown")
+        md = ensure_markdown_source_appendix(md, chunks, md_cites)
         title = _extract_md_title(md) or "Generated Markdown Artifact"
         return ArtifactResult(
             title=title[:120],
@@ -297,11 +319,21 @@ async def run_artifact(
             if chunks
             else "Markdown artifact",
         )
+    except AppError:
+        raise
     except Exception:  # noqa: BLE001
         result = await llm.generate_structured(
-            messages, ArtifactResult, GenerationOptions(model=model, temperature=0.3, max_tokens=8192)
+            messages,
+            ArtifactResult,
+            GenerationOptions(model=model, temperature=0.3, max_tokens=8192),
         )
         assert isinstance(result, ArtifactResult)
+        if result.artifact_type == "html":
+            html_cites = citation_labels_outside_sources(result.content, "html")
+            result.content = ensure_html_source_appendix(result.content, chunks, html_cites)
+        else:
+            md_cites = citation_labels_outside_sources(result.content, "markdown")
+            result.content = ensure_markdown_source_appendix(result.content, chunks, md_cites)
         return result
 
 

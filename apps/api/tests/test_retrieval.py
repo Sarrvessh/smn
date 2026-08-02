@@ -1,5 +1,10 @@
 from uuid import uuid4
 
+from app.agents.source_appendix import (
+    citation_labels_outside_sources,
+    ensure_html_source_appendix,
+    ensure_markdown_source_appendix,
+)
 from app.retrieval.hybrid_search import (
     EpisodeRef,
     RetrievedChunk,
@@ -111,10 +116,95 @@ def test_format_evidence_labels():
     )
     text = format_evidence([c])
     assert "[S1]" in text
+    assert "Chunk ID:" in text
     assert c.citation_label == "S1"
     payload = to_source_payload([c])
     assert payload[0]["id"] == "S1"
     assert "Brian" in payload[0]["guest"]
+
+
+def test_markdown_source_appendix_replaces_thin_sources():
+    c = _chunk(
+        content="Founders should talk to customers before scaling the motion.",
+        guest="Pete Kazanjy",
+        episode_title="Founder-led sales",
+        source_url="https://youtube.com/watch?v=demo",
+        publish_date="2024-01-01",
+    )
+    format_evidence([c])
+    content = "# Growth Plan\n\nDo founder-led sales first. [S1]\n\n## Sources\n\n[S1] Pete"
+
+    out = ensure_markdown_source_appendix(content, [c])
+
+    assert out.count("## Sources") == 1
+    assert "Pete Kazanjy - Founder-led sales" in out
+    assert f"Chunk: `{c.chunk_id}`" in out
+    assert "Excerpt: Founders should talk to customers" in out
+
+
+def test_markdown_source_appendix_filters_to_body_citations():
+    chunks = [
+        _chunk(content="Unused retrieval context", guest="Unused", episode_title="Unused"),
+        _chunk(content="Sales motion evidence", guest="Jason Lemkin", episode_title="Sales"),
+        _chunk(content="Founder-led sales evidence", guest="Pete Kazanjy", episode_title="Sales"),
+    ]
+    format_evidence(chunks)
+    content = (
+        "# Growth Plan\n\n"
+        "Use sales conversations first. [S2]\n\n"
+        "Scale founder-led sales carefully. [S3]\n\n"
+        "## Sources\n\n"
+        "- [S1] Unused\n"
+        "- [S2] Jason\n"
+        "- [S3] Pete"
+    )
+    body_cites = citation_labels_outside_sources(content, "markdown")
+
+    out = ensure_markdown_source_appendix(content, chunks, body_cites)
+
+    assert body_cites == ["S2", "S3"]
+    assert "[S1] Unused" not in out
+    assert "[S2] Jason Lemkin - Sales" in out
+    assert "[S3] Pete Kazanjy - Sales" in out
+
+
+def test_html_source_appendix_inserts_before_body_close():
+    c = _chunk(
+        content="Use educational content when buyers need to learn the category.",
+        guest="Krithika Shankarraman",
+        episode_title="Growth tactics",
+        source_url="https://youtube.com/watch?v=demo",
+    )
+    format_evidence([c])
+    html = "<!DOCTYPE html><html><head><title>x</title></head><body><h1>x</h1></body></html>"
+
+    out = ensure_html_source_appendix(html, [c])
+
+    assert "<section id=\"sources\"" in out
+    assert out.index("<section id=\"sources\"") < out.lower().index("</body>")
+    assert f"Chunk: {c.chunk_id}" in out
+    assert 'href="https://' not in out
+
+
+def test_html_source_appendix_filters_to_body_citations():
+    chunks = [
+        _chunk(content="Unused retrieval context", guest="Unused", episode_title="Unused"),
+        _chunk(content="Educational content evidence", guest="Krithika", episode_title="Growth"),
+    ]
+    format_evidence(chunks)
+    html = (
+        "<!DOCTYPE html><html><body>"
+        "<h1>Plan</h1><p>Build an education funnel. [S2]</p>"
+        '<section id="sources"><h2>Sources</h2><ol><li>[S1] Unused</li><li>[S2] K</li></ol></section>'
+        "</body></html>"
+    )
+    body_cites = citation_labels_outside_sources(html, "html")
+
+    out = ensure_html_source_appendix(html, chunks, body_cites)
+
+    assert body_cites == ["S2"]
+    assert "[S1]" not in out
+    assert "Krithika - Growth" in out
 
 
 def test_extract_episode_number():

@@ -77,7 +77,8 @@ class OllamaProvider:
             "400" in lowered
             or "not found" in lowered
             or "pull" in lowered
-            or "model" in lowered and "missing" in lowered
+            or "model" in lowered
+            and "missing" in lowered
         ):
             return AppError(
                 OLLAMA_MODEL_MISSING,
@@ -88,20 +89,36 @@ class OllamaProvider:
             )
         return AppError(OLLAMA_UNAVAILABLE, msg, retryable=True, status_code=503)
 
+    def _payload(
+        self,
+        messages: list[ChatMessage],
+        options: GenerationOptions,
+        *,
+        stream: bool,
+    ) -> dict:
+        payload = {
+            "model": options.model or self.settings.ollama_chat_model,
+            "messages": [message.model_dump() for message in messages],
+            "stream": stream,
+            "options": {"temperature": options.temperature},
+        }
+        if options.max_tokens is not None:
+            payload["options"]["num_predict"] = options.max_tokens
+        if options.stop:
+            payload["options"]["stop"] = options.stop
+        return payload
+
     async def generate(
         self,
         messages: list[ChatMessage],
         options: GenerationOptions,
     ) -> GenerationResult:
         model = options.model or self.settings.ollama_chat_model
-        payload = {
-            "model": model,
-            "messages": [m.model_dump() for m in messages],
-            "stream": False,
-            "options": {"temperature": options.temperature},
-        }
+        payload = self._payload(messages, options, stream=False)
         try:
-            async with httpx.AsyncClient(timeout=self.settings.llm_request_timeout_seconds) as client:
+            async with httpx.AsyncClient(
+                timeout=self.settings.llm_request_timeout_seconds
+            ) as client:
                 resp = await client.post(f"{self.base_url}/api/chat", json=payload)
                 if resp.status_code in {400, 404}:
                     detail = ""
@@ -132,12 +149,7 @@ class OllamaProvider:
         options: GenerationOptions,
     ) -> AsyncIterator[StreamEvent]:
         model = options.model or self.settings.ollama_chat_model
-        payload = {
-            "model": model,
-            "messages": [m.model_dump() for m in messages],
-            "stream": True,
-            "options": {"temperature": options.temperature},
-        }
+        payload = self._payload(messages, options, stream=True)
         try:
             async with (
                 httpx.AsyncClient(timeout=self.settings.llm_request_timeout_seconds) as client,

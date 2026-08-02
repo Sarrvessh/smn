@@ -280,6 +280,7 @@ def format_evidence(chunks: list[RetrievedChunk]) -> str:
         c.citation_label = f"S{i}"
         parts.append(
             f"[{c.citation_label}]\n"
+            f"Chunk ID: {c.chunk_id}\n"
             f"Guest: {c.guest}\n"
             f"Episode: {c.episode_title}\n"
             f"Published: {c.publish_date or 'unknown'}\n"

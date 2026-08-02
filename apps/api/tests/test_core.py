@@ -3,6 +3,7 @@ import pytest
 from app.agents.formatting import normalize_qa_markdown
 from app.agents.schemas import route_skill
 from app.core.security import sanitize_html_artifact, validate_artifact_content
+from app.db.models import ChatSession
 from app.ingestion.chunker import chunk_transcript, count_tokens
 from app.ingestion.parser import normalize_content
 from app.retrieval.citations import validate_citations
@@ -42,10 +43,7 @@ def test_route_explicit_wins():
 
 
 def test_normalize_qa_markdown_splits_glued_heading():
-    raw = (
-        "### Direct Answer Onboarding advice across guests: "
-        "- **Proxy Metrics**: Adam [S1]"
-    )
+    raw = "### Direct Answer Onboarding advice across guests: - **Proxy Metrics**: Adam [S1]"
     out = normalize_qa_markdown(raw)
     assert out.startswith("### Direct answer\n")
     assert "Onboarding advice" in out
@@ -62,7 +60,7 @@ def test_citation_validation_strips_invalid():
 
 def test_html_sanitize_blocks_script():
     with pytest.raises(ValueError):
-        sanitize_html_artifact('<html><body><script>alert(1)</script></body></html>')
+        sanitize_html_artifact("<html><body><script>alert(1)</script></body></html>")
 
 
 def test_html_sanitize_allows_inline_svg_chart():
@@ -86,9 +84,7 @@ def test_html_sanitize_allows_inline_svg_chart():
 
 def test_html_sanitize_blocks_remote_image_and_foreign_object():
     with pytest.raises(ValueError):
-        sanitize_html_artifact(
-            '<html><body><img src="https://evil.example/x.png" /></body></html>'
-        )
+        sanitize_html_artifact('<html><body><img src="https://evil.example/x.png" /></body></html>')
     with pytest.raises(ValueError):
         sanitize_html_artifact(
             '<html><body><svg><foreignObject width="100" height="100">'
@@ -104,3 +100,19 @@ def test_html_artifact_gets_csp():
     )
     assert "Content-Security-Policy" in html
     assert "script-src 'none'" in html
+
+
+def test_html_artifact_enforces_csp_even_when_document_supplies_one():
+    html = sanitize_html_artifact(
+        '<HTML><HEAD data-test="x">'
+        '<meta http-equiv="Content-Security-Policy" content="default-src *">'
+        "</HEAD><BODY><h1>Safe</h1></BODY></HTML>"
+    )
+    assert html.count("Content-Security-Policy") == 2
+    assert "object-src 'none'" in html
+    assert "base-uri 'none'" in html
+    assert html.index("default-src 'none'") < html.index("default-src *")
+
+
+def test_session_settings_do_not_have_automatic_updated_at_mutation():
+    assert ChatSession.__table__.c.updated_at.onupdate is None

@@ -118,7 +118,7 @@ export function useStreamChat() {
             guest: 'Sample Guest',
             episode: 'Mock Episode',
             excerpt: 'Retention is the signal for product-market fit.',
-            url: null,
+            url: 'https://youtube.com/watch?v=example',
           },
         ];
         setActiveSources(mockSources);

@@ -13,6 +13,6 @@ Produce Markdown documents or complete HTML/CSS pages from conversation context 
 - HTML must be a full document with inline CSS only; no scripts, handlers, forms, iframes, foreignObject, or external assets.
 - HTML artifacts must include at least two visual elements (KPI strip, bar/line/donut SVG, funnel, etc.).
 - Prefer body-only output in the normal generation path.
-- Include Sources with `[S#]` when Evidence was used.
+- Include auditable Sources with `[S#]`, guest, episode, chunk id, URL, and a short excerpt when Evidence was used.
 
 See `prompt.md` and `output.schema.json`.

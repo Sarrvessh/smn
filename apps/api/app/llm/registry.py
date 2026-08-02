@@ -66,12 +66,11 @@ class ProviderRegistry:
         openrouter = await self._openrouter.healthcheck()
 
         def chat_models(models: list[str]) -> list[str]:
-            chat = [
+            return [
                 m
                 for m in models
                 if not any(x in m.lower() for x in ("embed", "embedding", "bge-", "minilm"))
             ]
-            return chat or models
 
         return {
             "providers": [
