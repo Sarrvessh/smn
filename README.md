@@ -143,10 +143,6 @@ Cloned to `data/lennys-podcast-transcripts/` (gitignored).
 
 Chat and embeddings are separate: even with OpenRouter or Anthropic for chat, keep Ollama (or `OLLAMA_EMBED_MODEL=hash` for smoke) for embeddings.
 
-## Demo video
-
-Record a 2–3 minute walkthrough covering: problem → architecture → grounded Q&A with sources → persistence → Ship30 artifact → HTML artifact → provider/trace/tests. Prewarm Ollama before recording. Link the video from the submission form (not required in-repo).
-
 See also [docs/deployment.md](docs/deployment.md).
 
 ## License
